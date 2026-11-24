@@ -10,6 +10,31 @@ let currentPage = "overview";
 let currentChannel = "all";
 let currentDateRange = "7";
 
+/* ================= MASTER ACCOUNT & ISOLATION ================= */
+const MASTER_EMAIL = "nexa.3d@gmail.com";
+const MASTER_USER = {
+  user_id: "USR-NEXA-001",
+  full_name: "Lead 3D Artist (Nexa3D)",
+  email: "nexa.3d@gmail.com",
+  password: "fatih11204",
+  role: "Studio Director & Lead Artist"
+};
+
+function isMasterAccount() {
+  const user = getStoredSessionUser();
+  if (!user || !user.email) return false;
+  return user.email.toLowerCase() === MASTER_EMAIL.toLowerCase();
+}
+
+function getLeadsStorageKey() {
+  const user = getStoredSessionUser();
+  if (!user || isMasterAccount()) {
+    return LEADS_STORAGE_KEY;
+  }
+  const cleanId = (user.email || user.user_id || "guest").toLowerCase().replace(/[^a-z0-9]/g, "_");
+  return `dimension3d_client_leads_${cleanId}`;
+}
+
 /* ================= STORAGE KEYS ================= */
 const AUTH_STORAGE_KEY = "dimension3d_session_user";
 const LOCAL_USERS_KEY = "dimension3d_registered_users";
@@ -79,22 +104,107 @@ function findLocalUser(email, password) {
   }
 }
 
+function cleanLeadString(str) {
+  if (!str || typeof str !== 'string') return str || '';
+  return str
+    .replace(/[\u00e2\u00f0\u00c3\u00c2\u00ef\u00bf\ufffd\u0080-\u009F]+/g, '')
+    .replace(/•/g, '•')
+    .replace(/&/g, '&')
+    .replace(/→/g, '→')
+    .replace(/↓/g, '↓')
+    .trim();
+}
+
 function getStoredLeads() {
+  const key = getLeadsStorageKey();
   try {
-    const raw = localStorage.getItem(LEADS_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map(l => ({
+          ...l,
+          lead_id: cleanLeadString(l.lead_id),
+          full_name: cleanLeadString(l.full_name),
+          service_type: cleanLeadString(l.service_type),
+          specifications: cleanLeadString(l.specifications),
+          estimated_price: cleanLeadString(l.estimated_price),
+          utm_source: cleanLeadString(l.utm_source),
+          status: cleanLeadString(l.status)
+        }));
+      }
+    }
   } catch (e) {}
-  // Default 3D Studio Mock Leads
-  return (window.eduFunnelData && window.eduFunnelData.recent_ux_logs) || [];
+
+  // Only master account gets the default mock leads
+  if (isMasterAccount()) {
+    return (window.eduFunnelData && window.eduFunnelData.recent_ux_logs) || [];
+  }
+  return [];
 }
 
 function saveStoredLead(lead) {
   try {
+    const key = getLeadsStorageKey();
     const current = getStoredLeads();
     current.unshift(lead);
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(current));
+    localStorage.setItem(key, JSON.stringify(current));
   } catch (e) {}
 }
+
+function getStatusClass(status = "") {
+  if (status.includes("Deal")) return "deal";
+  if (status.includes("Follow-up")) return "followup";
+  if (status.includes("Batal") || status.includes("Drop")) return "dropoff";
+  return "pending";
+}
+
+function renderStatusDropdown(lead) {
+  const currentStatus = lead.status || "Request Brief Submitted";
+  const cls = getStatusClass(currentStatus);
+  return `
+    <div class="status-wrap">
+      <select class="status-select ${cls}" onchange="updateLeadStatus('${lead.lead_id}', this.value, this)">
+        <option value="Request Brief Submitted" ${currentStatus.includes("Request") ? "selected" : ""}>Request Brief</option>
+        <option value="Follow-up Konsultasi WA" ${currentStatus.includes("Follow") ? "selected" : ""}>Follow-up WA</option>
+        <option value="Deal Project (DP 50% Received)" ${currentStatus.includes("Deal") ? "selected" : ""}>Deal (DP 50%)</option>
+        <option value="Batal / Drop-off" ${currentStatus.includes("Batal") || currentStatus.includes("Drop") ? "selected" : ""}>Batal / Drop-off</option>
+      </select>
+    </div>
+  `;
+}
+
+window.updateLeadStatus = async function(leadId, newStatus, selectEl) {
+  // Immediately update select class for color change
+  if (selectEl) {
+    selectEl.className = "status-select " + getStatusClass(newStatus);
+  }
+
+  try {
+    const raw = localStorage.getItem(getLeadsStorageKey());
+    const leads = raw ? JSON.parse(raw) : [];
+    const lead = leads.find(l => l.lead_id === leadId);
+    if (lead) {
+      lead.status = newStatus;
+      localStorage.setItem(getLeadsStorageKey(), JSON.stringify(leads));
+    }
+  } catch (e) {}
+
+  try {
+    await fetch(`/api/leads/${encodeURIComponent(leadId)}/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus })
+    });
+  } catch (err) {}
+
+  // Sync funnel data in background
+  syncFunnelFromBackend().then(() => {
+    if (currentPage === "overview" || currentPage === "table") {
+      renderPage(currentPage);
+    }
+  });
+};
 
 /* ================= PAGE SWITCHING ================= */
 function showRegisterPage() {
@@ -200,7 +310,7 @@ if (loginForm) {
   loginForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    const email = document.getElementById("loginEmail").value.trim();
+    const email = document.getElementById("loginEmail").value.trim().toLowerCase();
     const password = document.getElementById("loginPassword").value;
     const submitButton = loginForm.querySelector("button[type='submit']");
 
@@ -208,44 +318,33 @@ if (loginForm) {
 
     let authenticatedUser = null;
 
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.user) {
-          authenticatedUser = result.user;
-        }
-      }
-    } catch (e) {}
+    // 1. Direct check for master account
+    if (email === MASTER_USER.email && password === MASTER_USER.password) {
+      authenticatedUser = { ...MASTER_USER };
+    }
 
-    // Fallback localStorage
+    // 2. Check backend if not matched yet
+    if (!authenticatedUser) {
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.user) {
+            authenticatedUser = result.user;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. Check registered local users
     if (!authenticatedUser) {
       const local = findLocalUser(email, password);
       if (local) {
         authenticatedUser = local;
-      }
-    }
-
-    // Fallback mode demo / studio owner
-    if (!authenticatedUser) {
-      if (
-        email.toLowerCase().includes("owner") ||
-        email.toLowerCase().includes("3d") ||
-        email.toLowerCase().includes("hendra") ||
-        password === "password123" ||
-        password === "demo" ||
-        email.length > 3
-      ) {
-        authenticatedUser = {
-          user_id: "USR-3D-001",
-          full_name: "Lead 3D Artist (Owner)",
-          email: email || "owner@dimension3d.studio",
-          role: "Studio Director & Lead Artist"
-        };
       }
     }
 
@@ -256,7 +355,7 @@ if (loginForm) {
       loginForm.reset();
       showDashboardPage();
     } else {
-      alert("Email atau password studio tidak sesuai. Gunakan tombol 'Mode Demo' untuk masuk instan.");
+      alert("Email atau password tidak sesuai. Silakan periksa kembali.");
     }
   });
 }
@@ -271,8 +370,39 @@ if (logoutButton) {
   });
 }
 
-/* ================= DATA INITIALIZATION ================= */
-function fetchEduFunnelData() {
+/* ================= DATA INITIALIZATION & BACKEND SYNC ================= */
+async function syncFunnelFromBackend() {
+  if (!isMasterAccount()) return;
+  try {
+    const res = await fetch(`/api/dashboard/funnel?channel=${encodeURIComponent(currentChannel)}&range=${currentDateRange}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.funnel && data.summary) {
+        if (!appData) appData = {};
+        appData.summary = data.summary;
+      }
+    }
+  } catch (err) {
+    // Graceful offline fallback to local data
+  }
+}
+
+async function syncLeadsFromBackend() {
+  if (!isMasterAccount()) return;
+  try {
+    const res = await fetch('/api/leads');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.leads) && data.leads.length > 0) {
+        localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(data.leads));
+      }
+    }
+  } catch (err) {
+    // Graceful offline fallback
+  }
+}
+
+async function fetchEduFunnelData() {
   if (window.eduFunnelData) {
     appData = JSON.parse(JSON.stringify(window.eduFunnelData));
   } else {
@@ -291,6 +421,12 @@ function fetchEduFunnelData() {
       ]
     };
   }
+
+  // Live Sync with Backend
+  await Promise.allSettled([
+    syncFunnelFromBackend(),
+    syncLeadsFromBackend()
+  ]);
 
   setupNavigation();
   setupFilters();
@@ -311,14 +447,16 @@ function setupNavigation() {
 
 function setupFilters() {
   if (channelFilter) {
-    channelFilter.onchange = function (e) {
+    channelFilter.onchange = async function (e) {
       currentChannel = e.target.value;
+      await syncFunnelFromBackend();
       renderPage(currentPage);
     };
   }
   if (dateFilter) {
-    dateFilter.onchange = function (e) {
+    dateFilter.onchange = async function (e) {
       currentDateRange = e.target.value;
+      await syncFunnelFromBackend();
       renderPage(currentPage);
     };
   }
@@ -326,10 +464,29 @@ function setupFilters() {
 
 /* ================= 4-STAGE FUNNEL CALCULATION ================= */
 function get4StageData(channelKey = currentChannel) {
-  let impresi = 190000;
-  let pengunjung = 24200;
-  let kalkulator = 4780;
-  let deal = 560;
+  // If not master account (new registered user), calculate strictly from user's own data
+  if (!isMasterAccount()) {
+    const userLeads = getStoredLeads();
+    const kalkulator = userLeads.length;
+    const deal = userLeads.filter(l => (l.status || "").includes("Deal")).length;
+    // If user has recorded leads, estimate visitors based on standard ratio, otherwise 0
+    const pengunjung = kalkulator > 0 ? Math.round(kalkulator * 5) : 0;
+    const impresi = pengunjung > 0 ? Math.round(pengunjung * 7) : 0;
+
+    const stages = [
+      { label: "1. Impresi Iklan (IG/Google Ads)", count: impresi, key: "impresi" },
+      { label: "2. Pengunjung Web 3D", count: pengunjung, key: "pengunjung" },
+      { label: "3. Interaksi Kalkulator Harga", count: kalkulator, key: "kalkulator" },
+      { label: "4. Request Brief / Deal Proyek", count: deal, key: "deal" }
+    ];
+    return { impresi, pengunjung, kalkulator, deal, stages };
+  }
+
+  // Master account data
+  let impresi = (appData && appData.summary && appData.summary.total_impresi) || 190000;
+  let pengunjung = (appData && appData.summary && appData.summary.total_pengunjung) || 24200;
+  let kalkulator = (appData && appData.summary && appData.summary.total_kalkulator) || 4780;
+  let deal = (appData && appData.summary && appData.summary.total_deal) || 560;
 
   if (channelKey === "Google Ads") {
     impresi = 62000;
@@ -353,7 +510,6 @@ function get4StageData(channelKey = currentChannel) {
     deal = 92;
   }
 
-  // Multiply by date range factor
   let factor = 1.0;
   if (currentDateRange === "7") factor = 0.25;
   if (currentDateRange === "month") factor = 1.0;
@@ -392,7 +548,7 @@ function getHighestDrop(stages) {
 
     if (dropPct > highestDrop.percent) {
       highestDrop = {
-        label: `${prev.label} → ${curr.label}`,
+        label: `${prev.label} -> ${curr.label}`,
         value: dropVal,
         percent: dropPct,
         index: i
@@ -431,7 +587,7 @@ function renderOverview() {
 
   app.innerHTML = `
     <section class="page-title">
-      <p>DIMENSION3D STUDIO &bull; ACQUISITION OVERVIEW</p>
+      <p>DIMENSION3D STUDIO • ACQUISITION OVERVIEW</p>
       <h1>Overview Corong Bisnis 3D Design</h1>
       <span>Pantau performa trafik portofolio, simulasi kalkulator harga, dan konversi deal proyek 3D.</span>
     </section>
@@ -459,6 +615,16 @@ function renderOverview() {
     </section>
 
     <!-- Critical Leak Alert Banner: BOCOR PARAH -->
+    ${(!isMasterAccount() && impresi === 0) ? `
+    <div class="leak-alert-banner" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.35); box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);">
+      <div class="leak-icon" style="color: var(--accent-cyan);">🚀</div>
+      <div class="leak-content">
+        <h4 style="color: #c7d2fe;">Akun Baru Studio 3D Aktif (Data Masih Bersih / Kosong)</h4>
+        <p style="color: #cbd5e1;">Belum ada riwayat trafik corong iklan yang tercatat pada akun ini. Hubungkan webhook kalkulator website 3D Anda atau klik tombol <strong>"Tambah Lead Baru"</strong> di menu Log Leads untuk mulai mencatat prospek.</p>
+        <div class="leak-rec" style="border-color: rgba(99, 102, 241, 0.3); background: rgba(15, 23, 42, 0.6);">💡 <strong>Tips:</strong> Login dengan akun studio utama <strong>nexa.3d@gmail.com</strong> untuk melihat analitik kampanye studio lengkap.</div>
+      </div>
+    </div>
+    ` : `
     <div class="leak-alert-banner">
       <div class="leak-icon">⚠️</div>
       <div class="leak-content">
@@ -497,6 +663,7 @@ function renderOverview() {
 
         ${getReportExportMarkup()}
       </aside>
+    `}
     </section>
   `;
 
@@ -511,13 +678,13 @@ function renderLeakAnalytics() {
 
   app.innerHTML = `
     <section class="page-title">
-      <p>DIMENSION3D &bull; FUNNEL DROP-OFF INTELLIGENCE</p>
+      <p>DIMENSION3D • FUNNEL DROP-OFF INTELLIGENCE</p>
       <h1>Funnel Analytics & Indikator Bocor Parah</h1>
       <span>Sistem audit kebocoran prospek klien pada corong jasa desain 3D & render komersial.</span>
     </section>
 
     <!-- Critical Leak Alert Banner: BOCOR PARAH -->
-    <div class="leak-alert-banner">
+    
       <div class="leak-icon">🚨</div>
       <div class="leak-content">
         <h4><span class="bocor-parah-badge">🚨 BOCOR PARAH TERDETEKSI!</span> Penurunan Ekstrem Calon Klien 3D</h4>
@@ -665,7 +832,7 @@ function renderLeakAnalytics() {
                 <td><small style="color:var(--text-muted);">${lead.specifications}</small></td>
                 <td><strong style="color:var(--accent-cyan);">${lead.estimated_price}</strong></td>
                 <td><span class="ads-tag ${lead.utm_source.includes('Google') ? 'tag-google' : 'tag-ig'}">${lead.utm_source.split(' ')[0]} Ads</span></td>
-                <td><span style="color:#34d399; font-weight:700;">⚡ ${lead.status}</span></td>
+                <td>${renderStatusDropdown(lead)}</td>
               </tr>
             `).join("")}
           </tbody>
@@ -679,7 +846,14 @@ function renderLeakAnalytics() {
 
 /* ================= 3. CHANNEL ANALYSIS ================= */
 function renderChannelAnalysis() {
-  const sources = (appData && appData.sources) || [];
+  const sources = isMasterAccount() 
+      ? ((appData && appData.sources) || [])
+      : [
+          { name: "Google Ads", impresi: 0, pengunjung: 0, kalkulator: 0, deal: 0, conversion_rate: 0, status: "Belum Aktif", badge_class: "stable" },
+          { name: "Instagram", impresi: 0, pengunjung: 0, kalkulator: 0, deal: 0, conversion_rate: 0, status: "Belum Aktif", badge_class: "stable" },
+          { name: "Twitter/X", impresi: 0, pengunjung: 0, kalkulator: 0, deal: 0, conversion_rate: 0, status: "Belum Aktif", badge_class: "stable" },
+          { name: "Website", impresi: 0, pengunjung: 0, kalkulator: 0, deal: 0, conversion_rate: 0, status: "Belum Aktif", badge_class: "stable" }
+        ];
 
   const cardsHtml = sources.map(source => `
     <div class="channel-card">
@@ -709,7 +883,7 @@ function renderChannelAnalysis() {
 
   app.innerHTML = `
     <section class="page-title">
-      <p>DIMENSION3D &bull; MARKETING CHANNELS</p>
+      <p>DIMENSION3D • MARKETING CHANNELS</p>
       <h1>Analisis Saluran Akuisisi Klien 3D</h1>
       <span>Evaluasi performa Google Ads, Instagram Ads, Twitter/Artstation, dan Website Portofolio.</span>
     </section>
@@ -802,7 +976,7 @@ function renderFunnelDepth() {
 
   app.innerHTML = `
     <section class="page-title">
-      <p>DIMENSION3D &bull; FUNNEL DEPTH</p>
+      <p>DIMENSION3D • FUNNEL DEPTH</p>
       <h1>Analisis Kedalaman Corong Konversi 3D</h1>
       <span>Melacak friksi dari impresi pertama hingga pembayaran uang muka (DP) proyek desain 3D.</span>
     </section>
@@ -839,86 +1013,126 @@ function renderFunnelDepth() {
 }
 
 /* ================= 5. DATA TABLE & LEADS UX LOGS ================= */
-function renderDataTable() {
-  const leads = getStoredLeads();
-  const { impresi, pengunjung, kalkulator, deal } = get4StageData();
+// Live search state
+let tableSearchQuery = "";
 
-  const rows = leads.map((lead, index) => `
-    <tr>
-      <td><strong>${lead.lead_id}</strong></td>
-      <td><strong>${lead.full_name}</strong></td>
-      <td>${lead.service_type}</td>
-      <td style="max-width: 260px; font-size: 0.82rem; color: var(--text-muted);">${lead.specifications}</td>
-      <td><strong style="color:var(--primary); font-size: 0.95rem;">${lead.estimated_price}</strong></td>
-      <td><span class="ads-tag ${lead.utm_source.includes('Google') ? 'tag-google' : 'tag-ig'}">${lead.utm_source}</span></td>
-      <td><span class="badge ${lead.status.includes('Deal') ? 'stable' : 'risk'}">${lead.status}</span></td>
-      <td><small style="color:var(--text-muted);">${lead.created_at ? lead.created_at.slice(0, 16).replace('T', ' ') : '-'}</small></td>
-    </tr>
-  `).join("");
-
-  app.innerHTML = `
-    <section class="page-title">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <p>DIMENSION3D &bull; UX SIMULATOR & CRM</p>
-          <h1>Log Interaksi UX & Leads Masuk (Kalkulator 3D)</h1>
-          <span>Riwayat simulasi estimasi harga jasa 3D oleh calon klien beserta spesifikasi render dan status deal.</span>
-        </div>
-        <button type="button" class="auth-button" style="width: auto; padding: 10px 18px; margin: 0; font-size: 13px;" onclick="openNewLeadModal()">
-          ➕ Tambah Simulasi Lead Baru (Demo Test)
-        </button>
-      </div>
-    </section>
-
-    <section class="summary">
-      <div class="summary-card">
-        <h3>Total Simulasi Tercatat</h3>
-        <p data-count-up data-value="${leads.length}">${leads.length}</p>
-      </div>
-      <div class="summary-card">
-        <h3>Interaksi Kalkulator</h3>
-        <p data-count-up data-value="${kalkulator}">${kalkulator.toLocaleString("id-ID")}</p>
-      </div>
-      <div class="summary-card">
-        <h3>Total Deal Proyek</h3>
-        <p data-count-up data-value="${deal}">${deal.toLocaleString("id-ID")}</p>
-      </div>
-      <div class="summary-card">
-        <h3>Rasio Deal</h3>
-        <p>${((deal / (kalkulator || 1)) * 100).toFixed(1)}%</p>
-      </div>
-    </section>
-
-    <section class="card" style="margin-top: 24px;">
-      <div class="section-header">
-        <div>
-          <h2>Tabel Riwayat Leads & Interaksi Kalkulator Harga</h2>
-          <span>Data tersimpan aman di browser (localStorage) & API internal studio</span>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID Lead</th>
-              <th>Nama Klien / Perusahaan</th>
-              <th>Layanan 3D</th>
-              <th>Spesifikasi Proyek</th>
-              <th>Estimasi Harga</th>
-              <th>Sumber Trafik</th>
-              <th>Status Deal</th>
-              <th>Waktu</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  `;
+function getSourceTagClass(src) {
+  src = (src || "").toLowerCase();
+  if (src.includes("google")) return "tag-google";
+  if (src.includes("instagram") || src.includes("ig")) return "tag-ig";
+  if (src.includes("twitter") || src.includes("x")) return "tag-x";
+  return "tag-web";
 }
 
+function renderDataTable() {
+  const allLeads = getStoredLeads();
+  const { kalkulator, deal } = get4StageData();
+
+  // Filter by search query
+  var q = tableSearchQuery.toLowerCase().trim();
+  var leads = q
+    ? allLeads.filter(function(l) {
+        return (l.full_name || "").toLowerCase().includes(q)
+            || (l.lead_id || "").toLowerCase().includes(q)
+            || (l.service_type || "").toLowerCase().includes(q)
+            || (l.utm_source || "").toLowerCase().includes(q)
+            || (l.status || "").toLowerCase().includes(q);
+      })
+    : allLeads;
+
+  var rows = "";
+  if (leads.length === 0) {
+    rows = '<tr><td colspan="8"><div class="table-empty"><div style="font-size:30px;opacity:0.3;">📋</div><p>Tidak ada lead ditemukan.</p></div></td></tr>';
+  } else {
+    rows = leads.map(function(lead) {
+      return '<tr>'
+        + '<td><span class="lead-id-cell">' + (lead.lead_id || "-") + "</span></td>"
+        + '<td><span class="client-name">' + (lead.full_name || "-") + "</span></td>"
+        + '<td style="font-size:12.5px;">' + (lead.service_type || "-") + "</td>"
+        + '<td><span class="spec-cell" title="' + (lead.specifications || "") + '">' + (lead.specifications || "-") + "</span></td>"
+        + '<td><span class="price-cell">' + (lead.estimated_price || "-") + "</span></td>"
+        + '<td><span class="ads-tag ' + getSourceTagClass(lead.utm_source) + '">' + (lead.utm_source || "-") + "</span></td>"
+        + "<td>" + renderStatusDropdown(lead) + "</td>"
+        + '<td><span class="time-cell">' + (lead.created_at ? lead.created_at.slice(0, 16).replace("T", " ") : "-") + "</span></td>"
+        + "</tr>";
+    }).join("");
+  }
+
+  var dealCount = allLeads.filter(function(l) { return (l.status || "").includes("Deal"); }).length;
+  var followupCount = allLeads.filter(function(l) { return (l.status || "").includes("Follow"); }).length;
+
+  app.innerHTML = '<section class="page-title">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">'
+    + '<div>'
+    + '<p>DIMENSION3D • CRM & UX SIMULATOR</p>'
+    + '<h1>Log Interaksi & Leads Masuk</h1>'
+    + '<span>Riwayat simulasi estimasi harga jasa 3D oleh calon klien beserta status deal.</span>'
+    + '</div>'
+    + '<button type="button" class="btn btn-primary" onclick="openNewLeadModal()">+ Tambah Lead Baru</button>'
+    + '</div>'
+    + '</section>'
+
+    + '<section class="summary">'
+    + '<div class="summary-card"><div class="metric-icon">📋</div><h3>Total Leads</h3><p data-count-up data-value="' + allLeads.length + '">' + allLeads.length + '</p><div class="metric-sub">Simulasi tercatat</div></div>'
+    + '<div class="summary-card"><div class="metric-icon">🎉</div><h3>Deal Closed</h3><p data-count-up data-value="' + dealCount + '">' + dealCount + '</p><div class="metric-sub">Proyek berhasil deal</div></div>'
+    + '<div class="summary-card"><div class="metric-icon">💬</div><h3>Follow-up</h3><p data-count-up data-value="' + followupCount + '">' + followupCount + '</p><div class="metric-sub">Sedang dikonsultasikan</div></div>'
+    + '<div class="summary-card"><div class="metric-icon">📊</div><h3>Rasio Deal</h3><p>' + (allLeads.length > 0 ? ((dealCount / allLeads.length) * 100).toFixed(1) : "0.0") + '%</p><div class="metric-sub">Dari total simulasi</div></div>'
+    + '</section>'
+
+    + '<section class="card" style="margin-top:16px;">'
+    + '<div class="section-header" style="margin-bottom:0;">'
+    + '<div><h2>Tabel Leads & Riwayat Kalkulator</h2><span>Data tersimpan di browser & API internal studio</span></div>'
+    + '</div>'
+
+    + '<div class="table-toolbar" style="margin-top:18px;">'
+    + '<div class="table-search">'
+    + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>'
+    + '<input type="text" id="leadSearch" placeholder="Cari nama, ID, layanan, status..." value="' + tableSearchQuery.replace(/"/g, "&quot;") + '" oninput="handleLeadSearch(this.value)" />'
+    + '</div>'
+    + '<div class="table-actions">'
+    + '<button class="export-btn" onclick="downloadCSVLeads()">📊 Export CSV</button>'
+    + getReportExportMarkup()
+    + '</div>'
+    + '</div>'
+
+    + '<div class="table-wrapper">'
+    + '<table class="data-table">'
+    + '<thead><tr>'
+    + '<th>ID Lead</th><th>Klien / Perusahaan</th><th>Layanan 3D</th><th>Spesifikasi</th><th>Estimasi Harga</th><th>Sumber</th><th>Status Deal</th><th>Waktu</th>'
+    + '</tr></thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table></div>'
+    + '</section>';
+}
+
+// Search handler — debounced
+var searchTimer = null;
+window.handleLeadSearch = function(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function() {
+    tableSearchQuery = val;
+    renderDataTable();
+    runDashboardAnimations();
+    setupReportExport();
+  }, 220);
+};
+
+// Export CSV for leads
+window.downloadCSVLeads = function() {
+  var leads = getStoredLeads();
+  var csv = "ID Lead,Nama Klien,Layanan 3D,Spesifikasi,Estimasi Harga,Sumber,Status,Waktu\n";
+  leads.forEach(function(l) {
+    var row = [l.lead_id, l.full_name, l.service_type, l.specifications, l.estimated_price, l.utm_source, l.status, l.created_at ? l.created_at.slice(0,16) : ""]
+      .map(function(v) { return '"' + (v || "").replace(/"/g, '""') + '"'; }).join(",");
+    csv += row + "\n";
+  });
+  var blob = new Blob([csv], { type: "text/csv" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = "D3D-Leads-" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+};
 /* ================= MODAL TAMBAH SIMULASI LEAD BARU (DEMO TEST) ================= */
 function openNewLeadModal() {
   const existingModal = document.getElementById("leadModal");
@@ -1001,6 +1215,11 @@ function openNewLeadModal() {
     };
 
     saveStoredLead(newLead);
+    fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newLead)
+    }).catch(() => {});
     closeLeadModal();
     renderDataTable();
   };
@@ -1089,7 +1308,7 @@ function getReportExportMarkup() {
   return `
     <div class="export-dropdown-wrapper" style="margin-top: 18px;">
       <button type="button" class="export-btn" id="exportBtn" style="width: 100%; justify-content: center;">
-        📥 Export Studio Report &darr;
+        📥 Export Studio Report ↓
       </button>
       <div class="export-menu" id="exportMenu" hidden>
         <button type="button" class="export-item" data-export-type="pdf">📄 Unduh PDF Report</button>
@@ -1191,13 +1410,14 @@ window.closeLeadModal = closeLeadModal;
 /* ================= INIT ON LOAD ================= */
 window.addEventListener("load", function () {
   const storedUser = getStoredSessionUser();
-  if (storedUser) {
-    showDashboardPage();
-    return;
+  if (storedUser && storedUser.email) {
+    // If it's a valid master or registered user
+    if (storedUser.email.toLowerCase() === MASTER_EMAIL || findLocalUser(storedUser.email)) {
+      showDashboardPage();
+      return;
+    }
   }
-  if (window.location.hash === "#dashboard") {
-    showDashboardPage();
-    return;
-  }
+  // Clear any obsolete demo session
+  clearStoredSessionUser();
   showLoginPage();
 });

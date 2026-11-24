@@ -1,44 +1,44 @@
 # Dokumentasi Desain Interaksi Pengguna (DIP) - User Persona
 
-## Tahap 1: User Persona (Target Klien Lembaga Pendidikan)
+## Tahap 1: User Persona (Target Klien Studio Jasa 3D Desain & Animasi)
 
-Dokumentasi ini mendefinisikan persona utama dari pengguna dashboard startup **LeakTrace (EduFunnel)**.
+Dokumentasi ini mendefinisikan persona utama dari pengguna dashboard internal **Dimension3D Studio & Funnel Intelligence Suite**.
 
 ---
 
-### Profil User (Fiksi)
-* **Nama Lengkap:** Hendra Gunawan, S.Kom., M.M. (Pak Hendra)
-* **Jabatan / Role:** *Head of Marketing & Admission*
-* **Institusi:** Akademi Skill Nusantara
-* **Karakteristik:** Berorientasi pada hasil dan ROI (Return on Investment) iklan, sibuk, tidak memiliki waktu untuk mengolah data mentah di Excel setiap hari, membutuhkan wawasan cepat dan visual yang actionable.
+### Profil User
+* **Nama Lengkap:** Alex Hendra Pratama, S.Sn. (Alex)
+* **Jabatan / Role:** *Lead 3D Artist & Studio Director*
+* **Institusi / Bisnis:** Dimension3D & NEXA 3D Studio
+* **Karakteristik:** Visioner dalam visual & seni 3D (CGI, Three.js, Blender, Unreal Engine), berorientasi pada profitabilitas studio dan ROI iklan, memiliki waktu terbatas di depan spreadsheet karena fokus memimpin produksi animasi, serta memerlukan visibilitas cepat atas konversi calon klien dari iklan media sosial.
 
 ---
 
 ### Skenario Penggunaan
-Pak Hendra mempercayakan pengelolaan **Google Ads** dan **Instagram Ads** lembaganya ke startup LeakTrace. Kampanye iklan dijalankan dengan tujuan mendatangkan calon mahasiswa baru (PMB).
+Alex mengelola alokasi anggaran iklan berbayar di **Google Ads (Search B2B)** dan **Instagram Ads (Reels 3D Portfolio)** untuk mendatangkan calon klien ke landing page interaktif 3D studio.
 
-Setiap pagi sebelum rapat koordinasi pimpinan, Pak Hendra membuka dashboard LeakTrace untuk:
+Setiap pagi dan sebelum weekly production meeting, Alex membuka dashboard Dimension3D untuk:
 1. Memantau performa harian dari kedua channel iklan utama (Google Ads vs Instagram Ads).
-2. Melihat secara transparan di mana calon mahasiswa berhenti atau keluar (*drop-off*) di setiap tahapan pendaftaran.
-3. Mengetahui apakah strategi kreatif iklan, penawaran beasiswa, atau form pendaftaran perlu direvisi.
+2. Melihat secara transparan di mana calon klien berhenti atau keluar (*drop-off*) di 4 tahap corong:
+   - **Impresi Iklan** $\rightarrow$ **Pengunjung Web 3D** $\rightarrow$ **Interaksi Kalkulator Harga** $\rightarrow$ **Request Brief / Deal DP 50%**.
+3. Mengetahui apakah harga simulasi di kalkulator 3D terlalu mahal atau tombol submit brief kurang menarik (terdeteksi sebagai *Bocor Parah*).
+4. Meninjau riwayat *leads* terbaru yang mengunci estimasi harga untuk segera di-follow up via WhatsApp.
 
 ---
 
-### Pain Points & Tantangan Pak Hendra
-1. **Data Tercecer & Manual:** Sebelumnya tim harus mengunduh CSV/Excel dari Google Ads Manager dan Meta Business Suite lalu menggabungkannya secara manual, memakan waktu 2-3 jam per minggu.
-2. **Blind Spot Kebocoran Pendaftaran:** Mengetahui iklan mendapat banyak klik, tetapi tidak tahu pasti mengapa angka yang akhirnya bayar dan diterima sangat sedikit (di mana calon mahasiswa hilang).
-3. **Respon Lambat ke Calon Mahasiswa:** Calon siswa yang mengisi form sering baru dihubungi 1-2 hari kemudian, sehingga minatnya sudah dingin atau beralih ke kampus lain.
+### Pain Points & Tantangan Alex
+1. **Kebocoran Iklan Visual:** Iklan Instagram Reels portofolio 3D mendapat banyak impresi dan klik, namun banyak calon klien keluar saat melihat estimasi harga kalkulator tanpa sempat mengirimkan brief proyek.
+2. **Data Tersebar:** Sebelumnya interaksi kalkulator di website dan chat WhatsApp masuk secara terpisah tanpa metrik persentase konversi yang terukur.
+3. **Respon Lambat ke Calon Klien:** Klien korporat (agency, developer properti, brand kecantikan) yang butuh jasa 3D cepat sering beralih ke vendor lain jika penawaran harga tidak segera direspon.
 
 ---
 
 ### Kebutuhan Desain Interaksi Pengguna (DIP)
-1. **Tampilan Visual Instan & Bebas Kebingungan:**
-   * Dashboard tidak menyajikan tabel rumit sebagai layar utama, melainkan **Interactive Funnel Chart** 4 tahap.
-   * Pak Hendra dapat langsung melihat konversi dari Impresi $\rightarrow$ Klik $\rightarrow$ Form Pendaftaran $\rightarrow$ Mahasiswa Diterima.
-2. **Indicator & Leak Alert Otomatis:**
-   * Sistem otomatis menghitung *drop-off rate* antar tahapan.
-   * Tahap dengan persentase kebocoran tertinggi otomatis diberi aksen visual **warna merah menyala / warning banner** (misal: *"Warning: Drop-off 85% terjadi dari Klik ke Form Pendaftaran"*).
-3. **Filter Komparasi Interaktif:**
-   * Tersedia tombol/dropdown cepat untuk membandingkan performa antara **Google Ads vs Instagram Ads** secara *side-by-side* atau terisolasi.
-4. **Kejelasan Keputusan Tanpa Download File:**
-   * Metrik utama (Conversion Rate, Total Pengunjung, Mahasiswa Diterima) disajikan dalam *Metric Cards* yang mencolok dan mudah dicerna dalam 5 detik pertama.
+1. **Tampilan Visual Instan & Interaktif:**
+   * Visualisasi corong 4-tahap vertikal/horizontal dengan persentase penurunan (*drop-off rate*) real-time.
+2. **Indicator & Leak Alert Otomatis (BOCOR PARAH):**
+   * Tahap dengan kebocoran tertinggi otomatis diberi aksen visual **badge merah menyala** (`🚨 BOCOR PARAH TERDETEKSI`) lengkap dengan rekomendasi taktis bisnis 3D.
+3. **Filter Komparasi Iklan Interaktif:**
+   * Dropdown cepat untuk membandingkan efektivitas **Google Ads (High Intent B2B)** vs **Instagram Ads (Reels Visual Portfolio)**.
+4. **Log Interaksi UX & Lead Tracking:**
+   * Tabel interaktif yang mencatat spesifikasi render 3D, durasi animasi, add-on, estimasi harga, dan status konversi klien.

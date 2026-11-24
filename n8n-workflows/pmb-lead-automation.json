@@ -1,19 +1,21 @@
 {
-  "name": "PMB Lead Nurturing & Anti-Leak Automation - Akademi Skill Nusantara",
+  "name": "3D Studio Lead Nurturing & Anti-Leak Automation - Nexa.3D Studio",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "pmb-lead",
-        "responseMode": "onReceived",
-        "responseData": "allEntries",
+        "path": "3d-lead",
         "options": {}
       },
-      "id": "1",
-      "name": "Webhook - PMB Form Submitted",
+      "id": "b9f0c50c-9d6d-42a8-993c-d12fe3ce644d",
+      "name": "Webhook - 3D Price Locked",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [220, 300]
+      "position": [
+        2544,
+        2384
+      ],
+      "webhookId": "74c84353-3aaa-4f77-b0fa-938539db1e41"
     },
     {
       "parameters": {
@@ -21,41 +23,44 @@
           "string": [
             {
               "name": "lead_id",
-              "value": "={{ $json.body.lead_id || 'LD-' + Date.now() }}"
+              "value": "={{ $json.body.lead_id || '3D-LEAD-' + Date.now() }}"
             },
             {
               "name": "full_name",
-              "value": "={{ $json.body.full_name }}"
+              "value": "={{ ($json.body.client && $json.body.client.name) || $json.body.full_name || 'Calon Klien' }}"
             },
             {
               "name": "whatsapp",
-              "value": "={{ $json.body.whatsapp }}"
+              "value": "={{ ($json.body.client && ($json.body.client.whatsapp_full || $json.body.client.whatsapp_raw)) || $json.body.whatsapp }}"
             },
             {
-              "name": "email",
-              "value": "={{ $json.body.email }}"
+              "name": "service_name",
+              "value": "={{ ($json.body.configuration && $json.body.configuration.service_name) || $json.body.service_type || '3D Product Visualization' }}"
             },
             {
-              "name": "program_study",
-              "value": "={{ $json.body.program_study }}"
+              "name": "estimated_price",
+              "value": "={{ ($json.body.configuration && $json.body.configuration.total_estimate_formatted) || $json.body.estimated_price || 'Rp 5.000.000' }}"
             },
             {
               "name": "utm_source",
-              "value": "={{ $json.body.utm_source || 'Instagram Ads' }}"
+              "value": "={{ ($json.body.tracking && $json.body.tracking.utm_source) || $json.body.utm_source || 'Instagram Ads' }}"
             },
             {
               "name": "status",
-              "value": "Form Submitted"
+              "value": "Request Brief Submitted"
             }
           ]
         },
         "options": {}
       },
-      "id": "2",
-      "name": "Set Lead Data",
+      "id": "729ff8ae-860c-4bff-a0ba-7fc0736cac30",
+      "name": "Set 3D Lead Data",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [440, 300]
+      "position": [
+        2768,
+        2384
+      ]
     },
     {
       "parameters": {
@@ -76,13 +81,18 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.whatsapp }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Halo {{ $json.full_name }}! 👋\\n\\nTerima kasih telah mendaftar di program *{{ $json.program_study }}* di Akademi Skill Nusantara.\\n\\n📥 Unduh brosur resmi & rincian biaya: https://akademiskill.ac.id/brosur-2026.pdf\\n\\nAda pertanyaan? Langsung balas pesan ini untuk terhubung dengan konselor PMB kami!\"\n  }\n}"
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.whatsapp }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Halo {{ $json.full_name }}! Terima kasih telah melakukan simulasi estimasi biaya untuk *{{ $json.service_name }}* di NEXA Studio.\\n\\nEstimasi Biaya: {{ $json.estimated_price }}\\n\\nLead Artist kami akan segera meninjau brief Anda. Balas pesan ini untuk jadwal meeting!\"\n  }\n}",
+        "options": {}
       },
-      "id": "3",
-      "name": "Instant WhatsApp Auto-Response (Siswa)",
+      "id": "09281c69-4ade-45a1-8221-548fb2b04be7",
+      "name": "Instant WhatsApp Auto-Response (Klien)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [700, 180]
+      "position": [
+        3024,
+        2256
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -90,55 +100,95 @@
         "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chat_id\": \"@pak_hendra_admission_alert\",\n  \"text\": \"🚨 *LEAD BARU PMB MASUK!*\\n\\n👤 *Nama:* {{ $json.full_name }}\\n📱 *WhatsApp:* {{ $json.whatsapp }}\\n📧 *Email:* {{ $json.email }}\\n🎓 *Prodi:* {{ $json.program_study }}\\n🎯 *Campaign:* {{ $json.utm_source }}\\n⏰ *Waktu:* {{ $now.format('yyyy-MM-dd HH:mm:ss') }}\\n\\n_Data otomatis tersinkronisasi ke Dashboard LeakTrace._\",\n  \"parse_mode\": \"Markdown\"\n}"
-      },
-      "id": "4",
-      "name": "Alert Real-time ke Pak Hendra (Telegram)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [700, 340]
-    },
-    {
-      "parameters": {
-        "operation": "append",
-        "sheetId": "1aBcDeFgHiJkLmNoPqRsTuVwXyZ",
-        "range": "PMB_Leads!A:G",
+        "jsonBody": "={\n  \"chat_id\": \"YOUR_TELEGRAM_CHAT_ID\",\n  \"text\": \"LEAD BARU PROYEK 3D MASUK!\\n\\nKlien: {{ $json.full_name }}\\nWhatsApp: {{ $json.whatsapp }}\\nLayanan: {{ $json.service_name }}\\nEstimasi: {{ $json.estimated_price }}\\nCampaign: {{ $json.utm_source }}\\nWaktu: {{ $now.format('yyyy-MM-dd HH:mm:ss') }}\\n\\nData tersinkronisasi ke Dashboard WebFunneling.\",\n  \"parse_mode\": \"Markdown\"\n}",
         "options": {}
       },
-      "id": "5",
-      "name": "Sync Data ke Google Sheets / DB",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 2,
-      "position": [700, 500]
+      "id": "a9e293d2-de87-4233-b823-c294331f612a",
+      "name": "Alert Real-time ke Studio Director (Telegram)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        3024,
+        2416
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "amount": 24,
-        "unit": "hours"
+        "method": "POST",
+        "url": "http://host.docker.internal:3001/api/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json.lead_id }}\",\n  \"full_name\": \"{{ $json.full_name }}\",\n  \"whatsapp\": \"{{ $json.whatsapp }}\",\n  \"service_type\": \"{{ $json.service_name }}\",\n  \"estimated_price\": \"{{ $json.estimated_price }}\",\n  \"utm_source\": \"{{ $json.utm_source }}\"\n}",
+        "options": {}
       },
-      "id": "6",
+      "id": "6f16c570-10df-42a9-bfe6-59e576b2ece4",
+      "name": "Sync Data ke WebFunneling Backend API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        3024,
+        2576
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": 24
+      },
+      "id": "f89d3395-0492-4ad3-9945-90a44055cbf5",
       "name": "Wait 24 Jam (Anti-Leak Follow-Up)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
-      "position": [960, 300]
+      "position": [
+        3296,
+        2384
+      ],
+      "webhookId": "b67caf2d-214d-4151-8a6a-09d9535e27d4"
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3001/api/leads/{{ $json.lead_id }}",
+        "options": {}
+      },
+      "id": "adbeade7-271f-4487-99ab-34f31abe1ff8",
+      "name": "Cek Status Terkini dari Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        3488,
+        2384
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.status }}",
-              "operation": "equal",
-              "value2": "Form Submitted"
+              "value1": "={{ ($json.lead && $json.lead.status) || 'Request Brief Submitted' }}",
+              "value2": "Request Brief Submitted"
             }
           ]
         }
       },
-      "id": "7",
-      "name": "Cek: Masih Macet di Isi Form?",
+      "id": "52bba77e-7162-4e0e-ac5f-d1dcb967a2d4",
+      "name": "Cek: Masih Belum Deal / DP?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1180, 300]
+      "position": [
+        3712,
+        2384
+      ]
     },
     {
       "parameters": {
@@ -159,42 +209,224 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.whatsapp }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Halo {{ $json.full_name }}, kuota beasiswa jalur awal untuk jurusan *{{ $json.program_study }}* tersisa 3 slot lagi nih! 🎓\\n\\nSelesaikan tahap registrasimu hari ini agar beasiswamu tidak hangus: https://akademiskill.ac.id/bayar-registrasi?id={{ $json.lead_id }}\"\n  }\n}"
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Set 3D Lead Data').item.json.whatsapp }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Halo {{ $('Set 3D Lead Data').item.json.full_name }}! Masih butuh konsultasi teknis untuk proyek *{{ $('Set 3D Lead Data').item.json.service_name }}* Anda?\\n\\nKhusus minggu ini ada voucher first-order 15% untuk pengerjaan aset 3D & animasi. Balas pesan ini untuk klaim voucher!\"\n  }\n}",
+        "options": {}
       },
-      "id": "8",
-      "name": "Kirim WA Nurturing / Anti-Leak",
+      "id": "0dd73c8e-f2cf-448b-a43a-ef5abb9b8f6f",
+      "name": "Kirim WA Nurturing / Anti-Leak 3D",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1420, 260]
+      "position": [
+        3952,
+        2336
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 1 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "10f265ff-2f95-4d74-9e70-33749601360c",
+      "name": "B1: Schedule - Senin 08:00 WIB",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        2784
+      ],
+      "notes": "Cron: 0 1 * * 1 = Senin 08:00 WIB (UTC+7, disimpan sebagai UTC 01:00)"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/leads",
+        "options": {}
+      },
+      "id": "fc405878-cc10-4669-b861-60b5c5090544",
+      "name": "B1: Ambil Semua Leads dari Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2784,
+        2784
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst leadsRaw = items[0]?.json?.leads || items[0]?.json || [];\nconst leads = Array.isArray(leadsRaw) ? leadsRaw : [];\n\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\nconst weeklyLeads = leads.filter(lead => {\n  if (!lead.created_at && !lead.timestamp) return true;\n  const d = new Date(lead.created_at || lead.timestamp);\n  return d >= sevenDaysAgo;\n});\n\nconst totalLeads = weeklyLeads.length;\n\nlet totalOmzet = 0;\nweeklyLeads.forEach(lead => {\n  const priceStr = (lead.estimated_price || lead.price || '0').toString();\n  const angka = parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0;\n  totalOmzet += angka;\n});\n\nconst formatRp = (num) => 'Rp ' + num.toLocaleString('id-ID');\n\nconst sumberCount = {};\nweeklyLeads.forEach(lead => {\n  const src = lead.utm_source || lead.source || 'Lainnya';\n  sumberCount[src] = (sumberCount[src] || 0) + 1;\n});\n\nconst sumberRowsHtml = Object.entries(sumberCount)\n  .map(([k, v]) => `<tr><td style=\"padding:10px 14px;border-bottom:1px solid #334155;\">${k}</td><td style=\"padding:10px 14px;border-bottom:1px solid #334155;font-weight:bold;color:#6366f1;text-align:right;\">${v} leads</td></tr>`)\n  .join('') || '<tr><td colspan=\"2\" style=\"padding:10px 14px;color:#94a3b8;\">Belum ada leads minggu ini</td></tr>';\n\nconst sumberText = Object.entries(sumberCount)\n  .map(([k, v]) => '  - ' + k + ': ' + v + ' leads')\n  .join('\\n') || '  - (Belum ada data minggu ini)';\n\nconst tanggal = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\n\nconst pesan = [\n  '*LAPORAN REKAP MINGGUAN — NEXA.3D STUDIO*',\n  'Periode: Minggu ini (s/d ' + tanggal + ')',\n  '',\n  'Total Request Brief: ' + totalLeads + ' leads',\n  'Estimasi Total Omzet: ' + formatRp(totalOmzet),\n  '',\n  'Sumber Lead:',\n  sumberText,\n  '',\n  'Laporan otomatis dari Dashboard WebFunneling & Supabase'\n].join('\\n');\n\nconst pesanHtml = `\n<div style=\"font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #1e293b;\">\n  <div style=\"background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px;text-align:center;\">\n    <h1 style=\"margin:0;font-size:22px;color:#ffffff;letter-spacing:0.5px;\">📊 LAPORAN REKAP MINGGUAN</h1>\n    <p style=\"margin:6px 0 0;font-size:14px;color:#e0e7ff;\">Nexa.3D Studio — Executive Performance Summary</p>\n  </div>\n  <div style=\"padding:24px;\">\n    <p style=\"color:#94a3b8;font-size:13px;margin:0 0 18px;\">📅 <strong>Periode:</strong> s/d ${tanggal}</p>\n    \n    <div style=\"margin-bottom:20px;\">\n      <table style=\"width:100%;border-collapse:separate;border-spacing:8px 0;\">\n        <tr>\n          <td style=\"background:#1e293b;padding:16px;border-radius:8px;border-left:4px solid #6366f1;width:50%;\">\n            <div style=\"font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;\">Total Request Brief</div>\n            <div style=\"font-size:24px;font-weight:bold;color:#f8fafc;margin-top:4px;\">${totalLeads} <span style=\"font-size:13px;font-weight:normal;color:#94a3b8;\">leads</span></div>\n          </td>\n          <td style=\"background:#1e293b;padding:16px;border-radius:8px;border-left:4px solid #10b981;width:50%;\">\n            <div style=\"font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;\">Estimasi Omzet</div>\n            <div style=\"font-size:19px;font-weight:bold;color:#10b981;margin-top:4px;\">${formatRp(totalOmzet)}</div>\n          </td>\n        </tr>\n      </table>\n    </div>\n\n    <h3 style=\"font-size:15px;color:#f1f5f9;margin:22px 0 10px;border-bottom:1px solid #334155;padding-bottom:6px;\">📡 Rincian Saluran Lead (Acquisition Source)</h3>\n    <table style=\"width:100%;border-collapse:collapse;font-size:14px;color:#cbd5e1;background:#1e293b;border-radius:8px;overflow:hidden;\">\n      <thead>\n        <tr style=\"background:#334155;text-align:left;color:#94a3b8;font-size:12px;text-transform:uppercase;\">\n          <th style=\"padding:10px 14px;\">Saluran</th>\n          <th style=\"padding:10px 14px;text-align:right;\">Jumlah Lead</th>\n        </tr>\n      </thead>\n      <tbody>\n        ${sumberRowsHtml}\n      </tbody>\n    </table>\n\n    <div style=\"margin-top:28px;text-align:center;\">\n      <a href=\"http://localhost:3001\" style=\"background:#6366f1;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:14px;font-weight:600;display:inline-block;\">Buka Dashboard WebFunneling →</a>\n    </div>\n  </div>\n  <div style=\"background:#090d16;padding:14px 24px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #1e293b;\">\n    Laporan otomatis ini dikirim ke muhammad.fatih.musyaffa@gmail.com oleh Nexa.3D Studio via n8n & Supabase.\n  </div>\n</div>\n`;\n\nreturn [{ json: { pesan, pesanHtml, totalLeads, totalOmzet, sumberCount, tanggal } }];"
+      },
+      "id": "ac2d7756-892e-42b2-934c-0bb9d5aadc98",
+      "name": "B1: Hitung & Format Laporan Mingguan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3024,
+        2784
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "muhammad.fatih.musyaffa@gmail.com",
+        "subject": "=📊 Laporan Rekap Mingguan Nexa.3D Studio — {{ $json.tanggal }}",
+        "message": "={{ $json.pesanHtml }}",
+        "options": {}
+      },
+      "id": "a7685073-0291-4a86-8e62-d501c7178f58",
+      "name": "B1: Kirim Laporan ke Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3296,
+        2784
+      ],
+      "webhookId": "045744c9-1261-47ca-9036-ee132797bddc",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "j2vW47PxLGnzuElA",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/10 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "16f15752-b691-4972-8e39-b02dc99fcca3",
+      "name": "B2: Schedule - Setiap 10 Menit",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        3184
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/leads",
+        "options": {}
+      },
+      "id": "a983778e-7b27-40e1-ba7e-3150c09399db",
+      "name": "B2: Ambil Data Leads untuk Attrition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2784,
+        3184
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst leadsRaw = items[0]?.json?.leads || items[0]?.json || [];\nconst leads = Array.isArray(leadsRaw) ? leadsRaw : [];\n\nconst totalLeads = leads.length;\n\nconst stage1 = Math.max(totalLeads * 15, 100);\nconst stage2 = Math.max(totalLeads * 5, 20);\nconst stage3 = Math.max(totalLeads * 2, 10);\nconst stage4 = totalLeads;\n\nconst attrition_1_2 = stage1 > 0 ? Math.round((1 - stage2 / stage1) * 100) : 0;\nconst attrition_2_3 = stage2 > 0 ? Math.round((1 - stage3 / stage2) * 100) : 0;\nconst attrition_3_4 = stage3 > 0 ? Math.round((1 - stage4 / stage3) * 100) : 0;\n\nconst stages = [\n  { label: 'Tahap 1-2 (Iklan ke Website)', rate: attrition_1_2 },\n  { label: 'Tahap 2-3 (Website ke Kalkulator)', rate: attrition_2_3 },\n  { label: 'Tahap 3-4 (Kalkulator ke Brief)', rate: attrition_3_4 }\n];\n\nconst worst = stages.reduce((a, b) => a.rate > b.rate ? a : b);\n\nconst now = new Date();\nconst waktu = now.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });\n\nconst alertHtml = `\n<div style=\"font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #ef4444;\">\n  <div style=\"background:linear-gradient(135deg,#dc2626,#991b1b);padding:24px;text-align:center;\">\n    <h1 style=\"margin:0;font-size:22px;color:#ffffff;letter-spacing:0.5px;\">🚨 CRITICAL LEAK ALERT</h1>\n    <p style=\"margin:6px 0 0;font-size:14px;color:#fee2e2;\">Deteksi Kebocoran Corong Iklan & Funneling Studio</p>\n  </div>\n  <div style=\"padding:24px;\">\n    <div style=\"background:#450a0a;border:1px solid #ef4444;border-radius:8px;padding:16px;margin-bottom:20px;\">\n      <div style=\"font-size:11px;color:#fca5a5;text-transform:uppercase;font-weight:bold;letter-spacing:0.5px;\">Titik Kebocoran Tertinggi:</div>\n      <div style=\"font-size:18px;font-weight:bold;color:#ffffff;margin-top:4px;\">${worst.label}</div>\n      <div style=\"font-size:28px;font-weight:bold;color:#f87171;margin-top:6px;\">${worst.rate}% <span style=\"font-size:14px;font-weight:normal;color:#fca5a5;\">Drop-off / Attrition</span></div>\n    </div>\n\n    <h3 style=\"font-size:15px;color:#f1f5f9;margin:20px 0 10px;border-bottom:1px solid #334155;padding-bottom:6px;\">📊 Rincian Rasio Penurunan per Tahap</h3>\n    <table style=\"width:100%;border-collapse:collapse;font-size:14px;color:#cbd5e1;background:#1e293b;border-radius:8px;overflow:hidden;\">\n      <thead>\n        <tr style=\"background:#334155;text-align:left;color:#94a3b8;font-size:12px;text-transform:uppercase;\">\n          <th style=\"padding:10px 14px;\">Tahap Funnel</th>\n          <th style=\"padding:10px 14px;text-align:right;\">Tingkat Kebocoran</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td style=\"padding:10px 14px;border-bottom:1px solid #334155;\">Tahap 1-2 (Iklan ke Website)</td>\n          <td style=\"padding:10px 14px;border-bottom:1px solid #334155;text-align:right;font-weight:bold;color:${attrition_1_2 > 60 ? '#f87171' : '#34d399'}\">${attrition_1_2}%</td>\n        </tr>\n        <tr>\n          <td style=\"padding:10px 14px;border-bottom:1px solid #334155;\">Tahap 2-3 (Website ke Kalkulator)</td>\n          <td style=\"padding:10px 14px;border-bottom:1px solid #334155;text-align:right;font-weight:bold;color:${attrition_2_3 > 60 ? '#f87171' : '#34d399'}\">${attrition_2_3}%</td>\n        </tr>\n        <tr>\n          <td style=\"padding:10px 14px;\">Tahap 3-4 (Kalkulator ke Brief)</td>\n          <td style=\"padding:10px 14px;text-align:right;font-weight:bold;color:${attrition_3_4 > 60 ? '#f87171' : '#34d399'}\">${attrition_3_4}%</td>\n        </tr>\n      </tbody>\n    </table>\n\n    <div style=\"margin-top:24px;text-align:center;\">\n      <a href=\"http://localhost:3001\" style=\"background:#ef4444;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:14px;font-weight:600;display:inline-block;\">Buka Dashboard Evaluasi Funneling →</a>\n    </div>\n  </div>\n  <div style=\"background:#090d16;padding:14px 24px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #1e293b;\">\n    Waktu deteksi: ${waktu} WIB • Dikirim otomatis ke muhammad.fatih.musyaffa@gmail.com via Nexa.3D Studio Anti-Leak\n  </div>\n</div>\n`;\n\nreturn [{\n  json: {\n    attrition_rate: worst.rate,\n    worst_stage: worst.label,\n    worst_rate: worst.rate,\n    all_stages: stages,\n    attrition_1_2,\n    attrition_2_3,\n    attrition_3_4,\n    total_leads: totalLeads,\n    alertHtml\n  }\n}];"
+      },
+      "id": "f2ec832e-42f4-4020-af67-9199f5113bfc",
+      "name": "B2: Hitung Attrition Rate per Tahap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3024,
+        3184
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.attrition_rate }}",
+              "operation": "larger",
+              "value2": 60
+            }
+          ]
+        }
+      },
+      "id": "8cf1566d-b9c6-4127-9f8c-a288e21fb033",
+      "name": "B2: IF Attrition > 60% (Bocor Parah)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        3184
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "muhammad.fatih.musyaffa@gmail.com",
+        "subject": "=🚨 CRITICAL LEAK ALERT: Kebocoran {{ $json.worst_rate }}% pada {{ $json.worst_stage }}",
+        "message": "={{ $json.alertHtml }}",
+        "options": {}
+      },
+      "id": "43d3de59-5bf9-4753-a28b-ad5bc0d3bfca",
+      "name": "B2: Kirim Critical Leak Alert ke Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3536,
+        3056
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "j2vW47PxLGnzuElA",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rate = $input.first().json.attrition_rate;\nreturn [{ json: { status: 'ok', attrition_rate: rate, message: 'Attrition normal, tidak ada alert.' } }];"
+      },
+      "id": "72939f5e-4c2a-400f-b545-593d154c3168",
+      "name": "B2: Attrition Normal — No Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3536,
+        3280
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
-    "Webhook - PMB Form Submitted": {
+    "Webhook - 3D Price Locked": {
       "main": [
         [
           {
-            "node": "Set Lead Data",
+            "node": "Set 3D Lead Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set Lead Data": {
+    "Set 3D Lead Data": {
       "main": [
         [
           {
-            "node": "Instant WhatsApp Auto-Response (Siswa)",
+            "node": "Instant WhatsApp Auto-Response (Klien)",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Alert Real-time ke Pak Hendra (Telegram)",
+            "node": "Alert Real-time ke Studio Director (Telegram)",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Sync Data ke Google Sheets / DB",
+            "node": "Sync Data ke WebFunneling Backend API",
             "type": "main",
             "index": 0
           },
@@ -210,23 +442,150 @@
       "main": [
         [
           {
-            "node": "Cek: Masih Macet di Isi Form?",
+            "node": "Cek Status Terkini dari Dashboard",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Cek: Masih Macet di Isi Form?": {
+    "Cek Status Terkini dari Dashboard": {
       "main": [
         [
           {
-            "node": "Kirim WA Nurturing / Anti-Leak",
+            "node": "Cek: Masih Belum Deal / DP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek: Masih Belum Deal / DP?": {
+      "main": [
+        [
+          {
+            "node": "Kirim WA Nurturing / Anti-Leak 3D",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B1: Schedule - Senin 08:00 WIB": {
+      "main": [
+        [
+          {
+            "node": "B1: Ambil Semua Leads dari Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B1: Ambil Semua Leads dari Backend": {
+      "main": [
+        [
+          {
+            "node": "B1: Hitung & Format Laporan Mingguan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B1: Hitung & Format Laporan Mingguan": {
+      "main": [
+        [
+          {
+            "node": "B1: Kirim Laporan ke Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2: Schedule - Setiap 10 Menit": {
+      "main": [
+        [
+          {
+            "node": "B2: Ambil Data Leads untuk Attrition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2: Ambil Data Leads untuk Attrition": {
+      "main": [
+        [
+          {
+            "node": "B2: Hitung Attrition Rate per Tahap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2: Hitung Attrition Rate per Tahap": {
+      "main": [
+        [
+          {
+            "node": "B2: IF Attrition > 60% (Bocor Parah)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B2: IF Attrition > 60% (Bocor Parah)?": {
+      "main": [
+        [
+          {
+            "node": "B2: Kirim Critical Leak Alert ke Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "B2: Attrition Normal — No Action",
             "type": "main",
             "index": 0
           }
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f66695c7-16fe-492a-8b07-aa4ece4d544d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "71abe27fad8f077d1619c0340dc806c1dec9b710024c5fd6099da42427794b3b"
+  },
+  "nodeGroups": [],
+  "id": "7haTDaxAHO1Ar3xr",
+  "tags": [
+    {
+      "updatedAt": "2026-11-22T07:32:09.571Z",
+      "createdAt": "2026-11-22T07:32:09.571Z",
+      "id": "H6btluaqaJ8EMSKD",
+      "name": "Dimension3D Studio"
+    },
+    {
+      "updatedAt": "2026-11-22T07:32:09.530Z",
+      "createdAt": "2026-11-22T07:32:09.530Z",
+      "id": "Lqj6bBY5yOY5QK8K",
+      "name": "Lead Nurturing"
+    },
+    {
+      "updatedAt": "2026-11-22T07:32:09.626Z",
+      "createdAt": "2026-11-22T07:32:09.626Z",
+      "id": "QA16Hmh7VY5X0wCs",
+      "name": "Funnel Anti-Leak"
+    }
+  ]
 }

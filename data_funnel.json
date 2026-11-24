@@ -7,7 +7,7 @@
   },
   "summary": {
     "total_impresi": 190000,
-    "total_pengunjung": 24200,
+    "total_pengunjung": 24201,
     "total_kalkulator": 4780,
     "total_deal": 560
   },
@@ -89,64 +89,147 @@
   ],
   "recent_ux_logs": [
     {
+      "id": 11,
+      "lead_id": "NEXA-T1J1MU",
+      "full_name": "Budi",
+      "whatsapp": "+6287779288449",
+      "email": "-",
+      "service_type": "3D Product Visualization",
+      "specifications": "Stylized / Low-Poly • 11 Angle • [Custom Rigging & Facial Blendshapes] • Catatan: Fashion",
+      "estimated_price": "Rp 2.900.000",
+      "utm_source": "Direct / Organik",
+      "status": "Request Brief Submitted",
+      "created_at": "2026-11-23T07:07:11.476042+00:00"
+    },
+    {
+      "id": 10,
+      "lead_id": "NEXA-4NDXF1",
+      "full_name": "Jono",
+      "whatsapp": "+6287779288449",
+      "email": "-",
+      "service_type": "3D Product Visualization",
+      "specifications": "Stylized / Low-Poly • 10 Angle • [Tanpa Add-on] • Catatan: Furniture",
+      "estimated_price": "Rp 2.000.000",
+      "utm_source": "Direct / Organik",
+      "status": "Deal Project (DP 50% Received)",
+      "created_at": "2026-11-23T06:42:43.054312+00:00"
+    },
+    {
+      "id": 9,
+      "lead_id": "NEXA-83O3EY",
+      "full_name": "Jono",
+      "whatsapp": "+6287779288449",
+      "email": "-",
+      "service_type": "3D Product Visualization",
+      "specifications": "Stylized / Low-Poly • 10 Angle • [Tanpa Add-on] • Catatan: Furniture",
+      "estimated_price": "Rp 2.000.000",
+      "utm_source": "Direct / Organik",
+      "status": "Request Brief Submitted",
+      "created_at": "2026-11-23T06:39:51.903281+00:00"
+    },
+    {
+      "id": 8,
+      "lead_id": "NEXA-2XU7U3",
+      "full_name": "Budi",
+      "whatsapp": "+62877792288449",
+      "email": "-",
+      "service_type": "3D Product Visualization",
+      "specifications": "Stylized / Low-Poly • 10 Angle • [Tanpa Add-on] • Catatan: Furniture",
+      "estimated_price": "Rp 2.000.000",
+      "utm_source": "Direct / Organik",
+      "status": "Request Brief Submitted",
+      "created_at": "2026-11-23T04:46:36.51755+00:00"
+    },
+    {
+      "id": 7,
+      "lead_id": "NEXA-PTYWRP",
+      "full_name": "Budi",
+      "whatsapp": "+62877792288449",
+      "email": "-",
+      "service_type": "3D Product Visualization",
+      "specifications": "Stylized / Low-Poly • 10 Angle • [Tanpa Add-on] • Catatan: Furniture",
+      "estimated_price": "Rp 2.000.000",
+      "utm_source": "Direct / Organik",
+      "status": "Request Brief Submitted",
+      "created_at": "2026-11-23T04:45:29.708963+00:00"
+    },
+    {
+      "id": 6,
+      "lead_id": "NEXA-PNAE2Y",
+      "full_name": "Budi",
+      "whatsapp": "+62877792288449",
+      "email": "-",
+      "service_type": "3D Product Visualization",
+      "specifications": "Stylized / Low-Poly • 10 Angle • [Tanpa Add-on] • Catatan: Furniture",
+      "estimated_price": "Rp 2.000.000",
+      "utm_source": "Direct / Organik",
+      "status": "Request Brief Submitted",
+      "created_at": "2026-11-23T04:44:36.333627+00:00"
+    },
+    {
+      "id": 5,
+      "lead_id": "NEXA-Q8F618",
+      "full_name": "Budi",
+      "whatsapp": "+62877792288449",
+      "email": "-",
+      "service_type": "3D Product Visualization",
+      "specifications": "Stylized / Low-Poly • 10 Angle • [Tanpa Add-on] • Catatan: Furniture",
+      "estimated_price": "Rp 2.000.000",
+      "utm_source": "Direct / Organik",
+      "status": "Request Brief Submitted",
+      "created_at": "2026-11-23T03:54:48.306296+00:00"
+    },
+    {
+      "id": 1,
       "lead_id": "3D-LEAD-2026-001",
       "full_name": "Reza Pratama (PT Mahakarya Arsitektur)",
-      "whatsapp": "081234567890",
+      "whatsapp": "+6281234567890",
       "email": "reza.pratama@mahakarya-arch.id",
       "service_type": "3D Architectural Visualization",
       "specifications": "4K Exterior Render (3 Angle) + Twilight Lighting Mood",
       "estimated_price": "Rp 6.500.000",
       "utm_source": "Instagram Ads (Reels Portfolio)",
-      "created_at": "2026-11-16 19:45",
-      "status": "Deal Project (DP 50% Received)"
+      "status": "Deal Project (DP 50% Received)",
+      "created_at": "2026-11-23T00:00:56.800359+00:00"
     },
     {
+      "id": 2,
       "lead_id": "3D-LEAD-2026-002",
       "full_name": "Clarissa Dewi (Brand Manager Lumina Cosmetic)",
-      "whatsapp": "081987654321",
+      "whatsapp": "+6281987654321",
       "email": "clarissa@luminacosmetics.com",
       "service_type": "3D Product Commercial & Animation",
       "specifications": "360 Spin + Exploded View 60fps (Blender/Cycles 4K)",
       "estimated_price": "Rp 12.000.000",
       "utm_source": "Google Ads (High Intent Search)",
-      "created_at": "2026-11-16 16:30",
-      "status": "Request Brief Submitted"
+      "status": "Request Brief Submitted",
+      "created_at": "2026-11-22T21:00:56.800359+00:00"
     },
     {
+      "id": 3,
       "lead_id": "3D-LEAD-2026-003",
       "full_name": "Bayu Wicaksono (IndoPlay Games Studio)",
-      "whatsapp": "081377889900",
+      "whatsapp": "+6281377889900",
       "email": "bayu@indoplaygames.co.id",
       "service_type": "3D Game Asset & Character Rigging",
       "specifications": "Low-poly PBR Game Ready Character + Unreal Engine Rig",
       "estimated_price": "Rp 7.800.000",
       "utm_source": "Google Ads (High Intent Search)",
-      "created_at": "2026-11-16 11:20",
-      "status": "Follow-up Konsultasi WA"
+      "status": "Follow-up Konsultasi WA",
+      "created_at": "2026-11-22T14:00:56.800359+00:00"
     },
     {
+      "id": 4,
       "lead_id": "3D-LEAD-2026-004",
       "full_name": "Fajar Nugraha (F&B Creative Agency)",
-      "whatsapp": "081299887766",
+      "whatsapp": "+6281299887766",
       "email": "fajar@kreatifagency.id",
       "service_type": "3D Photorealistic Packaging Render",
       "specifications": "8K Packaging Packshot (Can & Box) + Splash Simulation",
       "estimated_price": "Rp 4.200.000",
       "utm_source": "Instagram Ads (Reels Portfolio)",
-      "created_at": "2026-11-15 14:15",
-      "status": "Kalkulator Cek Harga"
-    },
-    {
-      "lead_id": "3D-LEAD-2026-005",
-      "full_name": "Hendra Wijaya (Property Developer Bali)",
-      "whatsapp": "081800112233",
-      "email": "hendra@balivilladeveloper.com",
-      "service_type": "3D Architectural Visualization",
-      "specifications": "Villa Complex 3D Walkthrough Animation (60s 1080p)",
-      "estimated_price": "Rp 18.500.000",
-      "utm_source": "Google Ads (High Intent Search)",
-      "created_at": "2026-11-15 09:30",
-      "status": "Deal Project (DP 50% Received)"
+      "status": "Kalkulator Cek Harga",
+      "created_at": "2026-11-22T02:00:56.800359+00:00"
     }
   ]
 }

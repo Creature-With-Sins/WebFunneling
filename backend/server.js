@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const path = require("path");
+const fs = require("fs");
+const { supabase } = require("./supabaseClient");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,76 +15,26 @@ app.use(express.json());
 // Serve static frontend assets (both public and frontend directories supported)
 const publicPath = path.join(__dirname, "../public");
 const frontendPath = path.join(__dirname, "../frontend");
+const dataFilePath = path.join(__dirname, "../data_funnel.json");
+
 app.use(express.static(publicPath));
 app.use(express.static(frontendPath));
 
 // In-memory users store for 3D Studio Internal Access
 const usersStore = [
   {
-    user_id: "USR-3D-001",
-    email: "owner@dimension3d.studio",
-    password: "password123",
-    full_name: "Lead 3D Artist (Studio Owner)",
+    user_id: "USR-NEXA-001",
+    email: "nexa.3d@gmail.com",
+    password: "fatih11204",
+    full_name: "Lead 3D Artist (Nexa3D)",
     studio_name: "Dimension3D Studio",
     role: "Studio Director & Lead Artist",
     created_at: new Date(Date.now() - 86400000 * 30).toISOString()
   }
 ];
 
-// In-memory UX interaction & 3D client calculator leads
-const leadsStore = [
-  {
-    lead_id: "3D-LEAD-2026-001",
-    full_name: "Reza Pratama (PT Mahakarya Arsitektur)",
-    whatsapp: "081234567890",
-    email: "reza.pratama@mahakarya-arch.id",
-    service_type: "3D Architectural Visualization",
-    specifications: "4K Exterior Render (3 Angle) + Twilight Lighting Mood",
-    estimated_price: "Rp 6.500.000",
-    utm_source: "Instagram Ads (Reels Portfolio)",
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    status: "Deal Project (DP 50% Received)"
-  },
-  {
-    lead_id: "3D-LEAD-2026-002",
-    full_name: "Clarissa Dewi (Brand Manager Lumina Cosmetic)",
-    whatsapp: "081987654321",
-    email: "clarissa@luminacosmetics.com",
-    service_type: "3D Product Commercial & Animation",
-    specifications: "360 Spin + Exploded View 60fps (Blender/Cycles 4K)",
-    estimated_price: "Rp 12.000.000",
-    utm_source: "Google Ads (High Intent Search)",
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    status: "Request Brief Submitted"
-  },
-  {
-    lead_id: "3D-LEAD-2026-003",
-    full_name: "Bayu Wicaksono (IndoPlay Games Studio)",
-    whatsapp: "081377889900",
-    email: "bayu@indoplaygames.co.id",
-    service_type: "3D Game Asset & Character Rigging",
-    specifications: "Low-poly PBR Game Ready Character + Unreal Engine Rig",
-    estimated_price: "Rp 7.800.000",
-    utm_source: "Google Ads (High Intent Search)",
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-    status: "Follow-up Konsultasi WA"
-  },
-  {
-    lead_id: "3D-LEAD-2026-004",
-    full_name: "Fajar Nugraha (F&B Creative Agency)",
-    whatsapp: "081299887766",
-    email: "fajar@kreatifagency.id",
-    service_type: "3D Photorealistic Packaging Render",
-    specifications: "8K Packaging Packshot (Can & Box) + Splash Simulation",
-    estimated_price: "Rp 4.200.000",
-    utm_source: "Instagram Ads (Reels Portfolio)",
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-    status: "Kalkulator Cek Harga"
-  }
-];
-
-// Raw 4-stage funnel campaign analytics data for 3D Design Studio
-const campaignData = {
+// Persistent campaign funnel data for 3D Design Studio
+let campaignData = {
   all: {
     channel: "Semua Saluran Iklan",
     impresi: 190000,
@@ -120,6 +72,98 @@ const campaignData = {
   }
 };
 
+// In-memory & JSON backed UX interaction & 3D client calculator leads
+let leadsStore = [];
+
+async function loadSupabaseData() {
+  try {
+    const { data: dbMetrics } = await supabase.from("summary_metrics").select("*").limit(1).maybeSingle();
+    if (dbMetrics) {
+      campaignData.all.impresi = dbMetrics.total_impresi || campaignData.all.impresi;
+      campaignData.all.pengunjung = dbMetrics.total_pengunjung || campaignData.all.pengunjung;
+      campaignData.all.kalkulator = dbMetrics.total_kalkulator || campaignData.all.kalkulator;
+      campaignData.all.deal = dbMetrics.total_deal || campaignData.all.deal;
+    }
+
+    const { data: dbSources } = await supabase.from("funnel_sources").select("*");
+    if (Array.isArray(dbSources) && dbSources.length > 0) {
+      dbSources.forEach(s => {
+        const key = mapChannelKey(s.name);
+        if (campaignData[key]) {
+          campaignData[key].impresi = s.impresi || campaignData[key].impresi;
+          campaignData[key].pengunjung = s.pengunjung || campaignData[key].pengunjung;
+          campaignData[key].kalkulator = s.kalkulator || campaignData[key].kalkulator;
+          campaignData[key].deal = s.deal || campaignData[key].deal;
+        }
+      });
+    }
+
+    const { data: dbLeads, error: errLeads } = await supabase.from("client_leads").select("*").order("created_at", { ascending: false });
+    if (!errLeads && Array.isArray(dbLeads) && dbLeads.length > 0) {
+      leadsStore = dbLeads;
+    }
+    console.log(`✅ Supabase Database connected: loaded ${leadsStore.length} leads & cloud metrics.`);
+  } catch (err) {
+    console.warn("Notice: Supabase initial sync fallback to local store:", err.message);
+  }
+}
+
+function loadInitialData() {
+  try {
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.recent_ux_logs) && parsed.recent_ux_logs.length > 0) {
+        leadsStore = parsed.recent_ux_logs;
+      }
+      if (parsed.summary) {
+        campaignData.all.impresi = parsed.summary.total_impresi || campaignData.all.impresi;
+        campaignData.all.pengunjung = parsed.summary.total_pengunjung || campaignData.all.pengunjung;
+        campaignData.all.kalkulator = parsed.summary.total_kalkulator || campaignData.all.kalkulator;
+        campaignData.all.deal = parsed.summary.total_deal || campaignData.all.deal;
+      }
+    }
+  } catch (err) {
+    console.warn("Notice: Using default fallback dataset for 3D studio:", err.message);
+  }
+
+  // Load from Supabase in background
+  loadSupabaseData();
+}
+
+function persistDataToFile() {
+  try {
+    let baseData = {};
+    if (fs.existsSync(dataFilePath)) {
+      baseData = JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
+    }
+    baseData.summary = {
+      total_impresi: campaignData.all.impresi,
+      total_pengunjung: campaignData.all.pengunjung,
+      total_kalkulator: campaignData.all.kalkulator,
+      total_deal: campaignData.all.deal
+    };
+    baseData.recent_ux_logs = leadsStore;
+    fs.writeFileSync(dataFilePath, JSON.stringify(baseData, null, 2), "utf8");
+  } catch (err) {
+    console.warn("Notice: Could not persist data to file:", err.message);
+  }
+}
+
+loadInitialData();
+
+/**
+ * Helper: Map various UTM source strings to campaignData channel keys
+ */
+function mapChannelKey(sourceStr) {
+  if (!sourceStr) return "website";
+  const s = sourceStr.toLowerCase();
+  if (s.includes("google")) return "google_ads";
+  if (s.includes("instagram") || s.includes("ig")) return "instagram";
+  if (s.includes("twitter") || s.includes("artstation") || s.includes("x_")) return "twitter_x";
+  return "website";
+}
+
 /**
  * Helper: Calculate 4-stage 3D Design Studio Funnel Analytics & Leak Detection
  * 1. Impresi Iklan -> 2. Pengunjung Web 3D -> 3. Interaksi Kalkulator Harga -> 4. Request Brief / Deal Proyek
@@ -138,7 +182,7 @@ function calculateFunnelAnalytics(raw) {
   for (let i = 1; i < stages.length; i++) {
     const prev = stages[i - 1].count;
     const curr = stages[i].count;
-    const dropCount = prev - curr;
+    const dropCount = Math.max(0, prev - curr);
     const dropRate = prev > 0 ? parseFloat(((dropCount / prev) * 100).toFixed(1)) : 0;
     const convRate = prev > 0 ? parseFloat(((curr / prev) * 100).toFixed(1)) : 0;
 
@@ -163,8 +207,8 @@ function calculateFunnelAnalytics(raw) {
     st.is_critical_leak = (idx === leakStageIndex);
   });
 
-  const leakStage = stages[leakStageIndex];
-  const prevStage = stages[leakStageIndex - 1];
+  const leakStage = stages[leakStageIndex] || stages[1];
+  const prevStage = stages[Math.max(0, leakStageIndex - 1)];
 
   const overallConversion = raw.impresi > 0
     ? parseFloat(((raw.deal / raw.impresi) * 100).toFixed(2))
@@ -215,14 +259,14 @@ app.get("/api", (req, res) => {
       login: "/api/login",
       user: "/api/user",
       funnel: "/api/dashboard/funnel",
-      leads: "/api/leads"
+      leads: "/api/leads",
+      track: "/api/analytics/track"
     }
   });
 });
 
 /**
  * POST /api/register
- * Studio owner / team registration with memory storage & instant demo fallback
  */
 app.post("/api/register", (req, res) => {
   try {
@@ -283,14 +327,13 @@ app.post("/api/register", (req, res) => {
 
 /**
  * POST /api/login
- * Studio owner login with in-memory validation & demo fallback
  */
 app.post("/api/login", (req, res) => {
   try {
     const { email, password } = req.body;
     const userEmail = (email || "").trim().toLowerCase();
 
-    const user = usersStore.find(u => u.email === userEmail);
+    const user = usersStore.find(u => u.email.toLowerCase() === userEmail);
     if (user && user.password === password) {
       return res.json({
         success: true,
@@ -304,35 +347,14 @@ app.post("/api/login", (req, res) => {
       });
     }
 
-    // Flexible Demo user fallback for quick evaluation
-    if (
-      userEmail.includes("owner") ||
-      userEmail.includes("hendra") ||
-      userEmail.includes("3d") ||
-      password === "demo" ||
-      password === "password123" ||
-      userEmail.length > 3
-    ) {
-      return res.json({
-        success: true,
-        message: "Login berhasil (Mode Akses Studio 3D)!",
-        user: {
-          user_id: "USR-3D-001",
-          full_name: "Lead 3D Artist (Owner)",
-          email: userEmail || "owner@dimension3d.studio",
-          role: "Studio Director & Lead Artist"
-        }
-      });
-    }
-
     return res.status(401).json({
       success: false,
-      message: "Email atau password studio tidak sesuai."
+      message: "Email atau password tidak sesuai. Silakan periksa kembali."
     });
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: "Terjadi kesalahan saat login.",
+      message: "Terjadi kesalahan server saat login.",
       error: err.message
     });
   }
@@ -374,6 +396,12 @@ app.get("/api/dashboard/funnel", (req, res) => {
       period: req.query.range || "7"
     },
     funnel: analysis,
+    summary: {
+      total_impresi: campaignData.all.impresi,
+      total_pengunjung: campaignData.all.pengunjung,
+      total_kalkulator: campaignData.all.kalkulator,
+      total_deal: campaignData.all.deal
+    },
     comparison: {
       google_ads: calculateFunnelAnalytics(campaignData.google_ads),
       instagram_ads: calculateFunnelAnalytics(campaignData.instagram)
@@ -382,12 +410,84 @@ app.get("/api/dashboard/funnel", (req, res) => {
 });
 
 /**
+ * POST /api/analytics/track
+ * Receives real-time telemetry from 3DWebsite:
+ * Stage 2: { event: "pageview", utm_source: "Instagram_Ads" }
+ * Stage 3: { event: "calculator_interaction", utm_source: "..." }
+ */
+app.post("/api/analytics/track", (req, res) => {
+  try {
+    const { event, utm_source } = req.body;
+    const channelKey = mapChannelKey(utm_source);
+
+    if (event === "pageview") {
+      campaignData.all.pengunjung += 1;
+      if (campaignData[channelKey]) {
+        campaignData[channelKey].pengunjung += 1;
+      }
+    } else if (event === "calculator_interaction") {
+      campaignData.all.kalkulator += 1;
+      if (campaignData[channelKey]) {
+        campaignData[channelKey].kalkulator += 1;
+      }
+    }
+
+    persistDataToFile();
+
+    res.json({
+      success: true,
+      message: `Event ${event} recorded successfully for channel ${channelKey}`,
+      current_metrics: {
+        pengunjung: campaignData.all.pengunjung,
+        kalkulator: campaignData.all.kalkulator,
+        deal: campaignData.all.deal
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/leads
- * Saves 3D design calculator brief submissions
+ * Saves 3D design calculator brief submissions.
+ * Supports BOTH flat payload AND nested 3DWebsite uxPayload!
  */
 app.post("/api/leads", async (req, res) => {
   try {
-    const { full_name, whatsapp, email, service_type, specifications, estimated_price, utm_source } = req.body;
+    const b = req.body || {};
+
+    // 1. Normalize client name
+    const full_name = b.full_name || (b.client && b.client.name) || b.name || "";
+
+    // 2. Normalize WhatsApp
+    const whatsapp = b.whatsapp || (b.client && (b.client.whatsapp_full || b.client.whatsapp_raw)) || "";
+
+    // 3. Normalize Email
+    const email = b.email || (b.client && b.client.email) || "-";
+
+    // 4. Normalize Service Type
+    const service_type = b.service_type || (b.configuration && b.configuration.service_name) || "3D Visualisasi Produk";
+
+    // 5. Normalize Specifications
+    let specifications = b.specifications || "";
+    if (!specifications && b.configuration) {
+      const cfg = b.configuration;
+      const addonsStr = (cfg.addons && cfg.addons.length > 0)
+        ? cfg.addons.map(a => typeof a === "string" ? a : a.name).join(", ")
+        : "Tanpa Add-on";
+      specifications = `${cfg.visual_style_name || "Standard"} • ${cfg.duration_value || 5} ${cfg.duration_unit || "Detik/Angle"} • [${addonsStr}]`;
+      if (b.client && b.client.notes) {
+        specifications += ` • Catatan: ${b.client.notes}`;
+      }
+    }
+    if (!specifications) specifications = "Custom 3D Render & Asset";
+
+    // 6. Normalize Estimated Price
+    const estimated_price = b.estimated_price || (b.configuration && (b.configuration.total_estimate_formatted || (b.configuration.total_estimate_raw ? `Rp ${b.configuration.total_estimate_raw.toLocaleString("id-ID")}` : ""))) || "Rp 5.000.000";
+
+    // 7. Normalize UTM Source
+    const utm_source = b.utm_source || (b.tracking && b.tracking.utm_source) || "Instagram Ads";
 
     if (!full_name || !whatsapp) {
       return res.status(400).json({
@@ -396,23 +496,56 @@ app.post("/api/leads", async (req, res) => {
       });
     }
 
+    const leadRef = b.lead_id || `3D-LEAD-${new Date().getFullYear()}-${String(leadsStore.length + 1).padStart(3, "0")}`;
+
     const newLead = {
-      lead_id: `3D-LEAD-${new Date().getFullYear()}-${String(leadsStore.length + 1).padStart(3, "0")}`,
+      lead_id: leadRef,
       full_name,
       whatsapp,
-      email: email || "-",
-      service_type: service_type || "3D Architectural Visualization",
-      specifications: specifications || "Custom 3D Render & Asset",
-      estimated_price: estimated_price || "Rp 5.000.000",
-      utm_source: utm_source || "Instagram Ads",
+      email,
+      service_type,
+      specifications,
+      estimated_price,
+      utm_source,
       created_at: new Date().toISOString(),
       status: "Request Brief Submitted"
     };
 
     leadsStore.unshift(newLead);
 
+    // Save lead to Supabase Cloud Database
+    try {
+      const { error: sbErr } = await supabase.from("client_leads").insert([{
+        lead_id: leadRef,
+        full_name,
+        whatsapp,
+        email,
+        service_type,
+        specifications,
+        estimated_price,
+        utm_source,
+        status: "Request Brief Submitted"
+      }]);
+      if (sbErr) {
+        console.warn("Notice: Supabase insert lead warning:", sbErr.message);
+      } else {
+        console.log(`☁️ Lead ${leadRef} successfully saved to Supabase PostgreSQL!`);
+      }
+    } catch (sbEx) {
+      console.warn("Supabase lead insert exception:", sbEx.message);
+    }
+
+    // Increment deal count in funnel analytics (Stage 4)
+    campaignData.all.deal += 1;
+    const channelKey = mapChannelKey(utm_source);
+    if (campaignData[channelKey]) {
+      campaignData[channelKey].deal += 1;
+    }
+
+    persistDataToFile();
+
     // Optional webhook trigger for n8n notification to Studio Owner
-    let webhookStatus = "n8n webhook simulated";
+    let webhookStatus = "n8n webhook skipped / direct API mode";
     if (N8N_WEBHOOK_URL) {
       try {
         await fetch(N8N_WEBHOOK_URL, {
@@ -444,12 +577,112 @@ app.post("/api/leads", async (req, res) => {
 /**
  * GET /api/leads
  * Returns recent 3D design UX simulator interactions & client briefs
+ * Fetches real-time data from Supabase PostgreSQL with local cache fallback
  */
-app.get("/api/leads", (req, res) => {
+app.get("/api/leads", async (req, res) => {
+  try {
+    const { data: dbLeads, error } = await supabase
+      .from("client_leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && Array.isArray(dbLeads)) {
+      leadsStore = dbLeads;
+      return res.json({
+        success: true,
+        source: "supabase",
+        total: dbLeads.length,
+        leads: dbLeads
+      });
+    }
+  } catch (err) {
+    console.warn("Supabase fetch leads exception, fallback to local:", err.message);
+  }
+
   res.json({
     success: true,
+    source: "local",
     total: leadsStore.length,
     leads: leadsStore
+  });
+});
+
+/**
+ * GET /api/leads/:leadId
+ * Returns single lead status (queryable by n8n or admin)
+ */
+app.get("/api/leads/:leadId", async (req, res) => {
+  const { leadId } = req.params;
+  try {
+    const { data: dbLead, error } = await supabase
+      .from("client_leads")
+      .select("*")
+      .eq("lead_id", leadId)
+      .maybeSingle();
+
+    if (!error && dbLead) {
+      return res.json({ success: true, source: "supabase", lead: dbLead });
+    }
+  } catch (err) {}
+
+  const lead = leadsStore.find(l => l.lead_id === leadId);
+  if (!lead) {
+    return res.status(404).json({ success: false, message: "Lead tidak ditemukan" });
+  }
+  res.json({ success: true, source: "local", lead });
+});
+
+/**
+ * PATCH or POST /api/leads/:leadId/status
+ * Updates lead status in real-time (e.g. to 'Deal Project (DP 50% Received)')
+ * Synchronizes with Supabase Cloud Database & local file store
+ */
+app.all(["/api/leads/:leadId", "/api/leads/:leadId/status"], async (req, res, next) => {
+  if (req.method !== "PATCH" && req.method !== "POST" && req.method !== "PUT") {
+    return next();
+  }
+  const { leadId } = req.params;
+  const { status } = req.body || {};
+
+  const lead = leadsStore.find(l => l.lead_id === leadId);
+  if (!lead) {
+    return res.status(404).json({ success: false, message: "Lead tidak ditemukan." });
+  }
+
+  if (status) {
+    const oldStatus = lead.status || "";
+    lead.status = status;
+
+    if (status.includes("Deal") && !oldStatus.includes("Deal")) {
+      campaignData.all.deal += 1;
+      const channelKey = mapChannelKey(lead.utm_source);
+      if (campaignData[channelKey]) {
+        campaignData[channelKey].deal += 1;
+      }
+    }
+    persistDataToFile();
+
+    // Synchronize to Supabase Cloud PostgreSQL
+    try {
+      const { error: sbErr } = await supabase
+        .from("client_leads")
+        .update({ status: status })
+        .eq("lead_id", leadId);
+
+      if (sbErr) {
+        console.warn("Notice: Supabase lead status update warning:", sbErr.message);
+      } else {
+        console.log(`☁️ Supabase lead ${leadId} status updated to: "${status}"`);
+      }
+    } catch (sbEx) {
+      console.warn("Supabase lead status update exception:", sbEx.message);
+    }
+  }
+
+  res.json({
+    success: true,
+    message: `Status lead ${leadId} berhasil diperbarui menjadi "${lead.status}"`,
+    lead
   });
 });
 
@@ -469,6 +702,7 @@ if (require.main === module) {
     console.log(`🚀 Dimension3D Funnel Analytics running on http://localhost:${PORT}`);
     console.log(`📡 GET  http://localhost:${PORT}/api/dashboard/funnel`);
     console.log(`📥 POST http://localhost:${PORT}/api/leads`);
+    console.log(`📊 POST http://localhost:${PORT}/api/analytics/track`);
   });
 }
 

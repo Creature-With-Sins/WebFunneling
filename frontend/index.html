@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Dimension3D Studio &bull; Internal Funnel Analytics & Deal Tracker</title>
+  <title>Dimension3D Studio • Internal Funnel Analytics & Deal Tracker</title>
 
   <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,9 +29,9 @@
         <div class="home-brand-logo">3D</div>
         <div class="home-brand-text">Dimension<span>3D</span> Studio</div>
       </div>
-      <div style="font-size: 13px; color: var(--text-muted); background: var(--bg-card); padding: 7px 16px; border-radius: 99px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-sm);">
-        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
-        <span>Sistem Internal Monitoring Funnel Bisnis 3D</span>
+      <div class="system-status-pill">
+        <span class="dot"></span>
+        <span>Sistem Monitoring Aktif</span>
       </div>
     </header>
 
@@ -46,16 +46,15 @@
           <input type="text" id="registerName" placeholder="Contoh: Alex Pratama" required />
 
           <label for="registerEmail">Email Studio / Bisnis 3D</label>
-          <input type="email" id="registerEmail" placeholder="owner@dimension3d.studio" required />
+          <input type="email" id="registerEmail" placeholder="nama@studio3d.com" required />
 
           <label for="registerPassword">Password</label>
-          <input type="password" id="registerPassword" placeholder="********" required />
+          <input type="password" id="registerPassword" placeholder="Minimal 6 karakter" required />
 
           <label for="confirmPassword">Konfirmasi Password</label>
-          <input type="password" id="confirmPassword" placeholder="********" required />
+          <input type="password" id="confirmPassword" placeholder="Ulangi password" required />
 
           <button type="submit" class="auth-button">Daftar Akun Studio 3D</button>
-          <button type="button" class="demo-login-btn" onclick="showDashboardPage()">⚡ Mode Demo: Langsung Buka Dashboard Studio 3D</button>
         </form>
 
         <p class="auth-link">
@@ -65,7 +64,7 @@
       </div>
     </div>
 
-    <div class="auth-footer">&copy; 2026 Dimension3D Studio &bull; 3D Design & Commercial CGI Analytics</div>
+    <div class="auth-footer">© 2026 Dimension3D Studio • 3D Design & Commercial CGI Analytics</div>
   </section>
 
   <!-- ================= AUTH: LOGIN PAGE ================= -->
@@ -75,9 +74,9 @@
         <div class="home-brand-logo">3D</div>
         <div class="home-brand-text">Dimension<span>3D</span> Studio</div>
       </div>
-      <div style="font-size: 13px; color: var(--text-muted); background: var(--bg-card); padding: 7px 16px; border-radius: 99px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-sm);">
-        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
-        <span>Sistem Internal Monitoring Funnel Bisnis 3D</span>
+      <div class="system-status-pill">
+        <span class="dot"></span>
+        <span>Sistem Monitoring Aktif</span>
       </div>
     </header>
 
@@ -90,13 +89,12 @@
 
         <form id="loginForm">
           <label for="loginEmail">Email Studio / Akun Terdaftar</label>
-          <input type="email" id="loginEmail" placeholder="owner@dimension3d.studio" required />
+          <input type="email" id="loginEmail" placeholder="nexa.3d@gmail.com" required />
 
           <label for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" placeholder="********" required />
+          <input type="password" id="loginPassword" placeholder="Masukkan password" required />
 
-          <button type="submit" class="auth-button">Masuk ke Dashboard Studio &rarr;</button>
-          <button type="button" class="demo-login-btn" onclick="showDashboardPage()">⚡ Mode Demo: Masuk Sebagai Lead 3D Artist</button>
+          <button type="submit" class="auth-button">Masuk ke Dashboard Studio →</button>
         </form>
 
         <p class="auth-link">
@@ -106,7 +104,7 @@
       </div>
     </div>
 
-    <div class="auth-footer">&copy; 2026 Dimension3D Studio &bull; 3D Design & Commercial CGI Analytics</div>
+    <div class="auth-footer">© 2026 Dimension3D Studio • 3D Design & Commercial CGI Analytics</div>
   </section>
 
   <!-- ================= DASHBOARD PAGE (INTERNAL STUDIO 3D) ================= -->
@@ -158,7 +156,7 @@
         <div class="header-actions">
           <div class="user-persona-tag">
             <span>👤</span>
-            <span><strong id="displayUserName">Lead 3D Artist</strong> &bull; <em>Studio Director</em></span>
+            <span><strong id="displayUserName">Lead 3D Artist</strong> • <em>Studio Director</em></span>
           </div>
 
           <div class="avatar" title="Profil Lead 3D Artist">

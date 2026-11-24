@@ -1,13 +1,14 @@
 {
-  "name": "leaktrace-eduflow",
+  "name": "dimension3d-funnel-analytics",
   "version": "1.0.0",
-  "description": "Platform Analitik Corong PMB & EduFlow Agency Suite",
+  "description": "Funnel Analytics & Deal Intelligence Suite untuk Studio Jasa 3D Desain",
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
     "build": "node -e \"const fs=require('fs'); if(fs.existsSync('frontend')){fs.cpSync('frontend', 'public', {recursive:true});}\""
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.2",
     "cors": "^2.8.5",
     "express": "^4.19.2"
   }
