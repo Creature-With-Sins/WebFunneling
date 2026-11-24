@@ -76,6 +76,10 @@ let campaignData = {
 let leadsStore = [];
 
 async function loadSupabaseData() {
+  if (!supabase) {
+    console.log("ℹ️ Supabase standby (waiting for env vars in production)");
+    return;
+  }
   try {
     const { data: dbMetrics } = await supabase.from("summary_metrics").select("*").limit(1).maybeSingle();
     if (dbMetrics) {
@@ -514,25 +518,27 @@ app.post("/api/leads", async (req, res) => {
     leadsStore.unshift(newLead);
 
     // Save lead to Supabase Cloud Database
-    try {
-      const { error: sbErr } = await supabase.from("client_leads").insert([{
-        lead_id: leadRef,
-        full_name,
-        whatsapp,
-        email,
-        service_type,
-        specifications,
-        estimated_price,
-        utm_source,
-        status: "Request Brief Submitted"
-      }]);
-      if (sbErr) {
-        console.warn("Notice: Supabase insert lead warning:", sbErr.message);
-      } else {
-        console.log(`☁️ Lead ${leadRef} successfully saved to Supabase PostgreSQL!`);
+    if (supabase) {
+      try {
+        const { error: sbErr } = await supabase.from("client_leads").insert([{
+          lead_id: leadRef,
+          full_name,
+          whatsapp,
+          email,
+          service_type,
+          specifications,
+          estimated_price,
+          utm_source,
+          status: "Request Brief Submitted"
+        }]);
+        if (sbErr) {
+          console.warn("Notice: Supabase insert lead warning:", sbErr.message);
+        } else {
+          console.log(`☁️ Lead ${leadRef} successfully saved to Supabase PostgreSQL!`);
+        }
+      } catch (sbEx) {
+        console.warn("Supabase lead insert exception:", sbEx.message);
       }
-    } catch (sbEx) {
-      console.warn("Supabase lead insert exception:", sbEx.message);
     }
 
     // Increment deal count in funnel analytics (Stage 4)
@@ -580,23 +586,25 @@ app.post("/api/leads", async (req, res) => {
  * Fetches real-time data from Supabase PostgreSQL with local cache fallback
  */
 app.get("/api/leads", async (req, res) => {
-  try {
-    const { data: dbLeads, error } = await supabase
-      .from("client_leads")
-      .select("*")
-      .order("created_at", { ascending: false });
+  if (supabase) {
+    try {
+      const { data: dbLeads, error } = await supabase
+        .from("client_leads")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (!error && Array.isArray(dbLeads)) {
-      leadsStore = dbLeads;
-      return res.json({
-        success: true,
-        source: "supabase",
-        total: dbLeads.length,
-        leads: dbLeads
-      });
+      if (!error && Array.isArray(dbLeads)) {
+        leadsStore = dbLeads;
+        return res.json({
+          success: true,
+          source: "supabase",
+          total: dbLeads.length,
+          leads: dbLeads
+        });
+      }
+    } catch (err) {
+      console.warn("Supabase fetch leads exception, fallback to local:", err.message);
     }
-  } catch (err) {
-    console.warn("Supabase fetch leads exception, fallback to local:", err.message);
   }
 
   res.json({
@@ -613,17 +621,19 @@ app.get("/api/leads", async (req, res) => {
  */
 app.get("/api/leads/:leadId", async (req, res) => {
   const { leadId } = req.params;
-  try {
-    const { data: dbLead, error } = await supabase
-      .from("client_leads")
-      .select("*")
-      .eq("lead_id", leadId)
-      .maybeSingle();
+  if (supabase) {
+    try {
+      const { data: dbLead, error } = await supabase
+        .from("client_leads")
+        .select("*")
+        .eq("lead_id", leadId)
+        .maybeSingle();
 
-    if (!error && dbLead) {
-      return res.json({ success: true, source: "supabase", lead: dbLead });
-    }
-  } catch (err) {}
+      if (!error && dbLead) {
+        return res.json({ success: true, source: "supabase", lead: dbLead });
+      }
+    } catch (err) {}
+  }
 
   const lead = leadsStore.find(l => l.lead_id === leadId);
   if (!lead) {
@@ -663,19 +673,21 @@ app.all(["/api/leads/:leadId", "/api/leads/:leadId/status"], async (req, res, ne
     persistDataToFile();
 
     // Synchronize to Supabase Cloud PostgreSQL
-    try {
-      const { error: sbErr } = await supabase
-        .from("client_leads")
-        .update({ status: status })
-        .eq("lead_id", leadId);
+    if (supabase) {
+      try {
+        const { error: sbErr } = await supabase
+          .from("client_leads")
+          .update({ status: status })
+          .eq("lead_id", leadId);
 
-      if (sbErr) {
-        console.warn("Notice: Supabase lead status update warning:", sbErr.message);
-      } else {
-        console.log(`☁️ Supabase lead ${leadId} status updated to: "${status}"`);
+        if (sbErr) {
+          console.warn("Notice: Supabase lead status update warning:", sbErr.message);
+        } else {
+          console.log(`☁️ Supabase lead ${leadId} status updated to: "${status}"`);
+        }
+      } catch (sbEx) {
+        console.warn("Supabase lead status update exception:", sbEx.message);
       }
-    } catch (sbEx) {
-      console.warn("Supabase lead status update exception:", sbEx.message);
     }
   }
 

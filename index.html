@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Dimension3D Studio • Internal Funnel Analytics & Deal Tracker</title>
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+
+  <!-- jsPDF CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+
+  <!-- Creative 3D Studio Dark Design System -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <!-- ================= AUTH: REGISTER PAGE ================= -->
+  <section id="registerPage" class="auth-page">
+    <header class="auth-nav-header">
+      <div class="home-brand">
+        <div class="home-brand-logo">3D</div>
+        <div class="home-brand-text">Dimension<span>3D</span> Studio</div>
+      </div>
+      <div class="system-status-pill">
+        <span class="dot"></span>
+        <span>Sistem Monitoring Aktif</span>
+      </div>
+    </header>
+
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-icon">3D</div>
+        <h1>Registrasi Akses Studio 3D</h1>
+        <p>Buat akun pengelola untuk memantau performa iklan, simulasi kalkulator harga, dan konversi brief proyek 3D.</p>
+
+        <form id="registerForm">
+          <label for="registerName">Nama Lengkap / Lead 3D Artist</label>
+          <input type="text" id="registerName" placeholder="Contoh: Alex Pratama" required />
+
+          <label for="registerEmail">Email Studio / Bisnis 3D</label>
+          <input type="email" id="registerEmail" placeholder="nama@studio3d.com" required />
+
+          <label for="registerPassword">Password</label>
+          <input type="password" id="registerPassword" placeholder="Minimal 6 karakter" required />
+
+          <label for="confirmPassword">Konfirmasi Password</label>
+          <input type="password" id="confirmPassword" placeholder="Ulangi password" required />
+
+          <button type="submit" class="auth-button">Daftar Akun Studio 3D</button>
+        </form>
+
+        <p class="auth-link">
+          Sudah memiliki akun studio?
+          <button id="goToLogin" type="button">Masuk ke Dashboard</button>
+        </p>
+      </div>
+    </div>
+
+    <div class="auth-footer">© 2026 Dimension3D Studio • 3D Design & Commercial CGI Analytics</div>
+  </section>
+
+  <!-- ================= AUTH: LOGIN PAGE ================= -->
+  <section id="loginPage" class="auth-page hidden">
+    <header class="auth-nav-header">
+      <div class="home-brand">
+        <div class="home-brand-logo">3D</div>
+        <div class="home-brand-text">Dimension<span>3D</span> Studio</div>
+      </div>
+      <div class="system-status-pill">
+        <span class="dot"></span>
+        <span>Sistem Monitoring Aktif</span>
+      </div>
+    </header>
+
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-icon">3D</div>
+
+        <h1>Dimension3D Internal Portal</h1>
+        <p>Masuk untuk menganalisis data drop-off corong iklan, interaksi kalkulator harga, dan deal klien 3D.</p>
+
+        <form id="loginForm">
+          <label for="loginEmail">Email Studio / Akun Terdaftar</label>
+          <input type="email" id="loginEmail" placeholder="nexa.3d@gmail.com" required />
+
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Masukkan password" required />
+
+          <button type="submit" class="auth-button">Masuk ke Dashboard Studio →</button>
+        </form>
+
+        <p class="auth-link">
+          Belum memiliki akun studio?
+          <button id="goToRegister" type="button">Buat akun baru</button>
+        </p>
+      </div>
+    </div>
+
+    <div class="auth-footer">© 2026 Dimension3D Studio • 3D Design & Commercial CGI Analytics</div>
+  </section>
+
+  <!-- ================= DASHBOARD PAGE (INTERNAL STUDIO 3D) ================= -->
+  <section id="dashboardPage" class="dashboard-page hidden">
+    <!-- Sidebar Kiri Bersih Minimalis -->
+    <aside class="sidebar">
+      <div class="sidebar-main">
+        <div class="brand">
+          <div class="logo">3D</div>
+          <div>
+            <h2>Dimension3D</h2>
+            <p>Studio Funnel Suite</p>
+          </div>
+        </div>
+
+        <nav class="menu">
+          <button type="button" class="menu-item active" data-page="overview">📊 Overview Studio</button>
+          <button type="button" class="menu-item" data-page="leak_analytics">🔥 Leak Alert & Ads Iklan</button>
+          <button type="button" class="menu-item" data-page="channel">🌐 Analisis Saluran Iklan</button>
+          <button type="button" class="menu-item" data-page="funnel">📈 Kedalaman Corong (4 Tahap)</button>
+          <button type="button" class="menu-item" data-page="table">📋 Log Interaksi UX & Leads</button>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button type="button" id="logoutButton">Keluar / Ganti Akun</button>
+      </div>
+    </aside>
+
+    <!-- Konten Utama Dashboard -->
+    <main class="main-content">
+      <header class="dashboard-header">
+        <div class="filter-group">
+          <select id="channelFilter">
+            <option value="all">Semua Saluran Iklan</option>
+            <option value="Google Ads">Google Ads (Search B2B Intent)</option>
+            <option value="Instagram">Instagram Ads (Reels / Visual 3D)</option>
+            <option value="Twitter/X">Twitter/X & Artstation</option>
+            <option value="Website">Website Organik (SEO)</option>
+          </select>
+
+          <select id="dateFilter">
+            <option value="7">7 Hari Terakhir</option>
+            <option value="month">Bulan Ini</option>
+            <option value="year">Tahun Ini</option>
+          </select>
+        </div>
+
+        <div class="header-actions">
+          <div class="user-persona-tag">
+            <span>👤</span>
+            <span><strong id="displayUserName">Lead 3D Artist</strong> • <em>Studio Director</em></span>
+          </div>
+
+          <div class="avatar" title="Profil Lead 3D Artist">
+            <svg class="avatar-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 21a8 8 0 0 0-16 0" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+        </div>
+      </header>
+
+      <section id="app">
+        <!-- Konten dashboard dirender secara dinamis oleh js/main.js -->
+      </section>
+    </main>
+  </section>
+
+  <!-- JavaScript Modules -->
+  <script src="js/data_funnel.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
