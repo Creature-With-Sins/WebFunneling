@@ -1,25 +1,16 @@
 {
-  "version": 2,
-  "cleanUrls": true,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    },
     {
       "source": "/api",
       "destination": "/api"
     },
     {
-      "source": "/login",
-      "destination": "/index.html"
+      "source": "/api/(.*)",
+      "destination": "/api"
     },
     {
-      "source": "/register",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/dashboard",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
