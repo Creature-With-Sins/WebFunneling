@@ -1,5 +1,6 @@
 {
-  "version": 2,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
   "rewrites": [
     {
       "source": "/api",
@@ -10,15 +11,7 @@
       "destination": "/api"
     },
     {
-      "source": "/login",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/register",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/dashboard",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
